@@ -22,7 +22,9 @@ class AppWindow(tk.Tk):
         self.frames[QuestionWindow] = question_frame
 
         main_frame.grid(row = 0, column = 0, sticky="nsew")
+        main_frame.grid_propagate(False)
         question_frame.grid(row = 0, column = 0, sticky="nsew")
+        question_frame.grid_propagate(False)
         self.show_frame(MainWindow)
 
     def show_frame(self, frame):
@@ -33,25 +35,25 @@ class AppWindow(tk.Tk):
 class MainWindow(tk.Frame):
 
     def __init__(self, master, controller):
-        tk.Frame.__init__(self, master)
+        tk.Frame.__init__(self, master, height=800, width=450)
         intro = tk.Label(self, text = "Register new entry:")
         intro.grid(padx = 10, pady = 10, sticky = "nsew")
 
         button = tk.Button(self, text = " REGISTER NEW ",
                             command = lambda: controller.show_frame(QuestionWindow))
-        button.grid(row = 1)
+        button.grid(row = 1, sticky="ns")
 
 
 class QuestionWindow(tk.Frame):
 
     def __init__(self, master, controller):
-        tk.Frame.__init__(self, master)
+        tk.Frame.__init__(self, master, height=800, width=450)
         text = tk.Label(self, text = "What kind of crust does the entry have?")
         text.grid(padx = 10, pady = 10, sticky = "nsew")
 
         button = tk.Button(self, text = " * Unjerk * ",
                             command = lambda: controller.show_frame(MainWindow))
-        button.grid(row = 1)
+        button.grid(row = 1, sticky="ns")
 
         TEST_OPTIONS = [
             ("Thin", "thin"),
@@ -59,7 +61,7 @@ class QuestionWindow(tk.Frame):
         ]
         TEST_VAR = tk.StringVar()
 
-        self.show_answers(TEST_OPTIONS, TEST_VAR)
+        # self.show_answers(TEST_OPTIONS, TEST_VAR)
 
     def show_answers(self, options, var):
         for option, value in options:

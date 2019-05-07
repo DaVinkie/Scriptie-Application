@@ -53,17 +53,19 @@ class TestFrame(tk.Frame):
         # label.grid(padx=5, pady=5, sticky="nsew")
 
 
-base_Q = "Does the entry have thin or thick crust?"
+base_Q = "Does the pizza have thin or thick crust?"
+sauce_Q = "What kind of sauce makes up the base?"
+meat_Q = "Is there any kind of meat on the pizza?"
 topping_Q = "What kind of topping does the entry have?"
 country_Q = "From which country does the entry originate?"
-qs = {"base": base_Q, "topping": topping_Q, "country": country_Q}
+qs = {"base": base_Q, "sauce": sauce_Q, "meat":meat_Q, "topping": topping_Q, "country": country_Q}
 
 cheese_pizza = Pizza("thick", "cheese", "italy")
 pepperoni_pizza = Pizza("thick", "pepperoni", "italy")
 mushroom_pizza = Pizza("thin", "mushroom", "france")
 pizzas = [cheese_pizza, pepperoni_pizza, mushroom_pizza]
 
-categories = ["base", "topping", "country"]
+categories = ["base", "sauce", "meat", "topping", "country"]
 
 
 
