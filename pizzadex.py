@@ -6,16 +6,19 @@ class AppWindow(tk.Tk):
     def __init__(self):
 
         tk.Tk.__init__(self)
-        main_window = tk.Frame(self)
+        self.title("PizzaDex - DEV")
+        self.geometry("450x800")
 
-        self.title("PizzaDex")
-        main_window.pack(fill = "both", expand = True)
+        main_window = tk.Frame(self)
+        main_window.grid(sticky="nsew")
+
+        label = tk.Label(self, text="HOI")
+        label.grid()
 
         # main_window.grid_rowconfigure(0, weight = 1)
         # main_window.grid_columnconfigure(0, weight = 1)
 
         self.frames = {}
-
         main_frame = MainWindow(main_window, self)
         self.frames[MainWindow] = main_frame
         question_frame = QuestionWindow(main_window, self)
@@ -35,32 +38,39 @@ class AppWindow(tk.Tk):
 class MainWindow(tk.Frame):
 
     def __init__(self, master, controller):
-        tk.Frame.__init__(self, master, height=800, width=450)
-        intro = tk.Label(self, text = "Register new entry:")
-        intro.grid(padx = 10, pady = 10, sticky = "nsew")
+        tk.Frame.__init__(self, master)
 
-        button = tk.Button(self, text = " REGISTER NEW ",
+        intro = tk.Label(self, text = "Register new entry:")
+        intro.grid(padx=5, pady=5, sticky="nsew")
+
+        button = tk.Button(self, text = "NIEUWE BEVINDING",
                             command = lambda: controller.show_frame(QuestionWindow))
-        button.grid(row = 1, sticky="ns")
+        button.place(relx = 0.5, rely=0.5, anchor=tk.CENTER)
 
 
 class QuestionWindow(tk.Frame):
 
     def __init__(self, master, controller):
-        tk.Frame.__init__(self, master, height=800, width=450)
-        text = tk.Label(self, text = "What kind of crust does the entry have?")
-        text.grid(padx = 10, pady = 10, sticky = "nsew")
+        tk.Frame.__init__(self, master)
 
-        button = tk.Button(self, text = " * Unjerk * ",
-                            command = lambda: controller.show_frame(MainWindow))
-        button.grid(row = 1, sticky="ns")
+        questionframe = tk.Frame(self, height=600, width=440, bg="white",
+                                    bd=1, relief=tk.SOLID)
+        questionframe.grid(padx=5, pady=5, row=0, column=0, sticky="nsew")
+        questionframe.grid_propagate(False)
 
-        TEST_OPTIONS = [
-            ("Thin", "thin"),
-            ("Thicc", "thicc")
-        ]
-        TEST_VAR = tk.StringVar()
-
+        question = tk.Message(questionframe, width=430, text = qs["soort"])
+        question.grid(padx=5, pady=5, sticky = "nsew")
+        #
+        # button = tk.Button(self, text = " * Unjerk * ",
+        #                     command = lambda: controller.show_frame(MainWindow))
+        # button.grid(row = 1, sticky="ns")
+        #
+        # TEST_OPTIONS = [
+        #     ("Thin", "thin"),
+        #     ("Thicc", "thicc")
+        # ]
+        # TEST_VAR = tk.StringVar()
+        #
         # self.show_answers(TEST_OPTIONS, TEST_VAR)
 
     def show_answers(self, options, var):
@@ -68,6 +78,16 @@ class QuestionWindow(tk.Frame):
             b = tk.Radiobutton(self, text = option, variable = var, value = value, anchor=tk.W)
             b.grid(sticky="ew")
 
+
+soort_q = "Tot welke pizzasoort behoort deze pizza?"
+saus_q = "Wat voor saus zit er op deze pizzasoort?"
+bodem_q = "Op wat voor bodem zit deze saus?"
+
+qs = {
+    "soort": soort_q,
+    "saus" : saus_q,
+    "bodem": bodem_q
+}
 
 
 

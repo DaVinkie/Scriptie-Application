@@ -1,13 +1,13 @@
 #!/usr/bin/python
 import tkinter as tk
-from pizzaclasses import *
+import random
 
 class AppWindow(tk.Tk):
 
     def __init__(self):
 
         tk.Tk.__init__(self)
-        self.title("LinneausDex")
+        self.title("PizzaDex - DEV")
         self.geometry("450x800")
 
         main = tk.Frame(self)
@@ -24,8 +24,6 @@ class TestFrame(tk.Frame):
 
         tk.Frame.__init__(self, master)
 
-        ENTRY = Pizza()
-
         textframe = tk.Frame(self, height=600, width = 440, bg="white", bd=1,
                                 relief=tk.SOLID)
         textframe.grid(padx=5, pady=5, row=0, column=0, sticky="nsew")
@@ -36,18 +34,19 @@ class TestFrame(tk.Frame):
 
         ans = tk.StringVar()
 
-        radio1 = tk.Radiobutton(self, text="Thin", variable=ans, value = "thin")
-        radio1.grid(row = 1, padx=5, pady=5)
-        radio2 = tk.Radiobutton(self, text="Thicc", variable=ans, value = "thicc")
-        radio2.grid(row = 2, padx=5, pady=5)
+        options = multiple_choice("bellpepper", 2)
+        for option in options:
+            b = tk.Radiobutton(self, text = option, variable = ans, value = option,
+                                anchor=tk.N)
+            b.grid(sticky="ew")
+
 
         button = tk.Button(self, text = "Submit",
-                            command = lambda: self.buttonpress(message, ans, ENTRY))
+                            command = lambda: self.buttonpress(message, ans))
         button.grid(row=3)
 
-    def buttonpress(self, Message, StringVar, Pizza):
+    def buttonpress(self, Message, StringVar):
         answer = StringVar.get()
-        Pizza.set_base(answer)
         Message.configure(text = qs["topping"])
         # label = tk.Message(self, width = 400, text = "Wow, you're using an actual test file. You are such an expert programmer very cool.")
         # label.grid(padx=5, pady=5, sticky="nsew")
@@ -60,13 +59,60 @@ topping_Q = "What kind of topping does the entry have?"
 country_Q = "From which country does the entry originate?"
 qs = {"base": base_Q, "sauce": sauce_Q, "meat":meat_Q, "topping": topping_Q, "country": country_Q}
 
-cheese_pizza = Pizza("thick", "cheese", "italy")
-pepperoni_pizza = Pizza("thick", "pepperoni", "italy")
-mushroom_pizza = Pizza("thin", "mushroom", "france")
-pizzas = [cheese_pizza, pepperoni_pizza, mushroom_pizza]
+import random
 
-categories = ["base", "sauce", "meat", "topping", "country"]
+class Rank:
+    def __init__(self, name, type, super):
+        self.name = name
+        self.type = type
+        self.super = super
 
+entries = [
+    ("pepperoni", "pizza", "meat"),
+    ("chicken", "pizza", "meat"),
+    ("doner", "pizza", "meat"),
+    ("sausage", "pizza", "meat"),
+    ("bacon", "pizza", "meat"),
+    ("mushroom", "pizza", "veg"),
+    ("pepper", "pizza", "veg"),
+    ("onion", "pizza", "veg"),
+    ("bellpepper", "pizza", "veg"),
+    ("olives", "pizza", "veg"),
+    ("mozzarella", "pizza", "cheese"),
+    ("cheddar", "pizza", "cheese"),
+    ("feta", "pizza", "cheese"),
+    ("gorgonzola", "pizza", "cheese"),
+    ("bluecheese", "pizza", "cheese"),
+    ("meat", "pizzatype", "barbecuesauce"),
+    ("veg", "pizzatype", "tomatosauce"),
+    ("cheese", "pizzatype", "tomatosauce"),
+    ("meat", "pizzatype", "sauce"),
+    ("tomatosauce", "sauce", "crust"),
+    ("barbecuesauce", "sauce", "crust"),
+    ("crust", "base", None)
+]
+db = {}
+
+for i in range(len(entries)):
+    db[str(i)] = Rank(entries[i][0], entries[i][1], entries[i][2])
+
+def get_answer(input):
+    for d in db:
+        if db[d].name == input:
+            answer = db[d].super
+    return answer
+
+def multiple_choice(input, n):
+    answer = get_answer(input)
+    for d in db:
+        if db[d].name == input:
+            type = db[d].type
+    viables = list(set([db[d].super for d in db if db[d].type == type]))
+    viables.remove(answer)
+    possibles = random.choices(viables, k=(n-1))
+    possibles.append(answer)
+    random.shuffle(possibles)
+    return possibles
 
 
 root = AppWindow()
