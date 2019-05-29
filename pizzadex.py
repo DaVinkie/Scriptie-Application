@@ -101,8 +101,8 @@ class QuestionWindow(tk.Frame):
 
         questionframe = tk.Frame(self, height=600, width=440, bg="white",
                                     bd=1, relief=tk.SOLID)
-        questionframe.grid(padx=5, pady=5, row=0, column=0, sticky="nsew")
-        questionframe.grid_propagate(False)
+        # questionframe.grid(padx=5, pady=5, row=0, column=0, sticky="nsew")
+        # questionframe.grid_propagate(False)
         question = tk.Message(questionframe, width=430, bg="white")
         question.grid(sticky="nsew")
         rank = PARENTS["start"]
@@ -124,6 +124,9 @@ class QuestionWindow(tk.Frame):
                             command = lambda: controller.show_frame(MainWindow))
         button.grid(sticky="nsew")
 
+        canvas = TreeDisplay(self)
+        canvas.grid()
+
     # Hardcoded ID weghalen
     def retrieve_answer(self, rank_df, parent_df, name):
         soort = rank_df.loc[rank_df['Naam_NL'] == name]
@@ -141,6 +144,28 @@ class QuestionWindow(tk.Frame):
             b = tk.Radiobutton(self, text = option, variable = var, value = value, anchor=tk.W)
             b.grid(sticky="ew")
 
+# Herbruikbaar canvas waar taxonomische bomen in getekend kunnen worden.
+class TreeDisplay(tk.Canvas):
+
+    def __init__(self, master):
+        tk.Canvas.__init__(self, master)
+        canvas = tk.Canvas(self, bg="white", height=500, width=500)
+        canvas.grid()
+        X = tk.IntVar(0);
+        b = tk.Button(self, text="square", command = lambda: self.draw_square_origin(canvas, X))
+        b.grid(row=1)
+
+    def draw_square_origin(self, canvas, X):
+        x = X.get()
+        canvas.create_rectangle(x, 0, 50+x, 50, fill="red")
+        X.set(x+50)
+
+
+
+
+
+
 
 app = AppWindow()
 app.mainloop()
+# input() # debugging
