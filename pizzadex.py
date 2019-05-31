@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import tkinter as tk
+import tkinter.font as tkF
 import pandas as pd
 
 # Geraamte van de applicatie
@@ -10,6 +11,8 @@ class AppWindow(tk.Tk):
         tk.Tk.__init__(self)
         self.title("LinneausDex - DEV")
         self.geometry("450x800")
+        global used_font
+        used_font = tkF.Font(family="Courier", size=12)
 
         main_window = tk.Frame(self, width=450)
         main_window.grid(sticky="nsew")
@@ -70,42 +73,35 @@ class QuestionWindow(tk.Frame):
     def __init__(self, master, controller):
         tk.Frame.__init__(self, master)
 
-        ranklist = ["soort", "familie", "orde", "klasse", "stam", "rijk"]
+        ranklist = ["Soort", "Familie", "Orde", "Klasse", "Stam", "Rijk"]
+        n_ranks = len(ranklist)
 
         soort_q = "Wat is de Nederlandse naam van de soort die je wilt classificeren?"
-        familie_q = "Wat is de naam van de familie waar deze soort toe behoort?"
+        familie_q = "Tot welke familie behoort deze soort?"
         orde_q = "Wat is de naam van de orde waar deze familie toe behoort?"
 
         QUESTIONS = {
-            "soort": soort_q,
-            "familie" : familie_q,
-            "orde": orde_q
+            "Soort": soort_q,
+            "Familie" : familie_q,
+            "Orde": orde_q
         }
 
         PARENTS = {
-            "start": "soort",
-            "soort": "familie",
-            "familie": "orde",
-            "orde": "klasse",
-            "klasse": "stam",
-            "stam": "rijk"
+            "Start": "Soort",
+            "Soort": "Familie",
+            "Familie": "Orde",
+            "Orde": "Klasse",
+            "Klasse": "Stam",
+            "Stam": "Rijk"
         }
-
-        soort_data = pd.read_excel(r'data\Soort.xlsx')
-        familie_data = pd.read_excel(r'data\Familie.xlsx')
-        soort_df = pd.DataFrame(soort_data)
-        familie_df = pd.DataFrame(familie_data)
-        # Soort: ID, Familie_ID, Naam_NL, Naam_LA
-        # Familie: ID, Orde_ID, Naam_NL, Naam_LA
-        # print(soort_data[soort_data['Naam_NL'].notnull()])
 
         questionframe = tk.Frame(self, height=600, width=440, bg="white",
                                     bd=1, relief=tk.SOLID)
-        # questionframe.grid(padx=5, pady=5, row=0, column=0, sticky="nsew")
+        questionframe.grid(padx=5, pady=5, row=0, column=0, sticky="nsew")
         # questionframe.grid_propagate(False)
         question = tk.Message(questionframe, width=430, bg="white")
         question.grid(sticky="nsew")
-        rank = PARENTS["start"]
+        rank = PARENTS["Start"]
         self.update_question(question, QUESTIONS, rank, PARENTS)
 
         # ans = tk.IntVar()
@@ -114,18 +110,34 @@ class QuestionWindow(tk.Frame):
         field = tk.Entry(self, textvariable = ans)
         field.grid(padx=5, pady=5, sticky = "nsew")
 
+        # s = tk.Button(self, text="submit",
+        #     command = lambda: self.update_question(question, QUESTIONS, PARENTS[rank], PARENTS))
+        # s.grid(sticky="nsew")
         s = tk.Button(self, text="submit",
-            command = lambda: self.update_question(question, QUESTIONS, PARENTS[rank], PARENTS))
+            command = lambda: self.get_full_answer(ranklist, ans.get(), PARENTS))
         s.grid(sticky="nsew")
 
-        print(self.retrieve_answer(soort_df, familie_df, "Bosmuis"))
+        # print(self.retrieve_answer(soort_df, familie_df, "Bosmuis"))
 
         button = tk.Button(self, text = " Home ",
                             command = lambda: controller.show_frame(MainWindow))
         button.grid(sticky="nsew")
 
         canvas = TreeDisplay(self)
-        canvas.grid()
+        canvas.grid(row=0, column=1)
+
+    # Nu nog naam LA
+    def get_full_answer(self, ranklist, name, parents):
+        answer = [name]
+        for i in ranklist[:-1]:
+            parent = parents[i]+'_ID'
+            row = dataframes[i].loc[dataframes[i]['Naam_LA'] == name]
+            parent_ID = row[parent].values[0]
+            parent_row = dataframes[parents[i]].loc[dataframes[parents[i]]['ID'] == parent_ID]
+            name = parent_row['Naam_LA'].values[0]
+            answer.append(name)
+        print(answer)
+        return answer
 
     # Hardcoded ID weghalen
     def retrieve_answer(self, rank_df, parent_df, name):
@@ -149,22 +161,58 @@ class TreeDisplay(tk.Canvas):
 
     def __init__(self, master):
         tk.Canvas.__init__(self, master)
-        canvas = tk.Canvas(self, bg="white", height=500, width=500)
+        canvas = tk.Canvas(self, bg="white", height=800, width=450)
+        colors = ['#99ccff', '#b3ff66', '#ffd699', '#00b3b3', '#ff9999', '#ffff99']
         canvas.grid()
-        X = tk.IntVar(0);
-        b = tk.Button(self, text="square", command = lambda: self.draw_square_origin(canvas, X))
-        b.grid(row=1)
+        nodes = []
+        curr_X  = tk.IntVar()
+        curr_Y = tk.IntVar()
+        curr_X.set(6), curr_Y.set(6)
+        b = tk.Button(self, text="square",
+            command = lambda: self.draw_node(canvas, "Kaasmakker", colors[2], curr_X, curr_Y, nodes))
+        b.grid(column=0, row=1)
+        b2 = tk.Button(self, text="squarespace",
+            command = lambda: self.draw_nodes(canvas, colors, nodes, curr_X, curr_Y))
+        b2.grid(column=1, row=1)
 
-    def draw_square_origin(self, canvas, X):
+    def draw_node(self, canvas, rank, color, X, Y, nodelist):
         x = X.get()
-        canvas.create_rectangle(x, 0, 50+x, 50, fill="red")
-        X.set(x+50)
+        y = Y.get()
+        node_width = used_font.measure(rank) + 10
+        # print("Width = ", node_width)
+        node = canvas.create_rectangle(x, y, x + node_width, y + NODE_HEIGHT, fill = color)
+        nodelist.append(node)
+        canvas.create_text(x + (node_width/2), y + (NODE_HEIGHT/2), text = rank, font = used_font)
+        Y.set(y+NODE_HEIGHT*2)
+        self.connect_nodes(canvas, nodelist)
+
+    def draw_nodes(self, canvas, colors, nodelist, X, Y):
+        x = X.get()
+        y = Y.get()
+        for i in range(len(ranklist)):
+            self.draw_node(canvas, ranklist[i], colors[i], X, Y, nodelist)
 
 
+    def connect_nodes(self, canvas, nodelist):
+        if len(nodelist) > 1:
+            for i in range(len(nodelist)-1):
+                xa0, ya0, xa1, ya1 = canvas.bbox(nodelist[i])
+                xb0, yb0, xb1, yb1 = canvas.bbox(nodelist[i+1])
+                # print(xb0, xb1, yb0, yb1)
+                # print(xa0, xa1, ya0, ya1)
+                # print((xa0+xa1)/2, ya1-1, (xb0+xb1)/2, yb0+1)
+                canvas.create_line((xa0+xa1)/2, ya1-1, (xb0+xb1)/2, yb0+1)
 
 
+NODE_WIDTH = 50
+NODE_HEIGHT = 30
+BRANCH_LENGTH = 25
 
-
+ranklist = ["Soort", "Familie", "Orde", "Klasse", "Stam", "Rijk"]
+dataframes = {}
+for i in ranklist:
+    db = pd.read_excel("data\\" + i + ".xlsx")
+    dataframes[i] = pd.DataFrame(db)
 
 app = AppWindow()
 app.mainloop()
