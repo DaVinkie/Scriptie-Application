@@ -73,17 +73,28 @@ class QuestionWindow(tk.Frame):
     def __init__(self, master, controller):
         tk.Frame.__init__(self, master)
 
+        self.user_ans = []
+        self.real_ans = []
+
+        self.current_rank = "Soort"
+
         ranklist = ["Soort", "Familie", "Orde", "Klasse", "Stam", "Rijk"]
         n_ranks = len(ranklist)
 
         soort_q = "Wat is de Nederlandse naam van de soort die je wilt classificeren?"
         familie_q = "Tot welke familie behoort deze soort?"
         orde_q = "Wat is de naam van de orde waar deze familie toe behoort?"
+        klasse_q = "Wat is de naam van de klasse boven deze orde?"
+        stam_q = "Tot welke stam behoort deze klasse?"
+        rijk_q = "Tot slot: Wat is de naam van het rijk waar deze klasse toe behoort?"
 
         QUESTIONS = {
             "Soort": soort_q,
             "Familie" : familie_q,
-            "Orde": orde_q
+            "Orde": orde_q,
+            "Klasse": klasse_q,
+            "Stam": stam_q,
+            "Rijk": rijk_q
         }
 
         PARENTS = {
@@ -92,7 +103,8 @@ class QuestionWindow(tk.Frame):
             "Familie": "Orde",
             "Orde": "Klasse",
             "Klasse": "Stam",
-            "Stam": "Rijk"
+            "Stam": "Rijk",
+            "Rijk": None
         }
 
         questionframe = tk.Frame(self, height=600, width=440, bg="white",
@@ -101,20 +113,22 @@ class QuestionWindow(tk.Frame):
         # questionframe.grid_propagate(False)
         question = tk.Message(questionframe, width=430, bg="white")
         question.grid(sticky="nsew")
-        rank = PARENTS["Start"]
-        self.update_question(question, QUESTIONS, rank, PARENTS)
+        # rank = PARENTS["Start"]
+
 
         # ans = tk.IntVar()
         ans = tk.StringVar()
 
         field = tk.Entry(self, textvariable = ans)
         field.grid(padx=5, pady=5, sticky = "nsew")
+        self.update_question(question, field, QUESTIONS, self.current_rank, PARENTS)
 
-        # s = tk.Button(self, text="submit",
-        #     command = lambda: self.update_question(question, QUESTIONS, PARENTS[rank], PARENTS))
-        # s.grid(sticky="nsew")
         s = tk.Button(self, text="submit",
-            command = lambda: self.get_full_answer(ranklist, ans.get(), PARENTS))
+            command = lambda: self.update_question(question, field, QUESTIONS, self.current_rank, PARENTS))
+        # s = tk.Button(self, text="submit",
+        #     command = lambda: self.get_full_answer(ans.get(), ranklist, PARENTS))
+        # s = tk.Button(self, text="submit",
+        #     command = lambda: self.get_answer(PARENTS, "Soort", ans.get()))
         s.grid(sticky="nsew")
 
         # print(self.retrieve_answer(soort_df, familie_df, "Bosmuis"))
@@ -126,42 +140,59 @@ class QuestionWindow(tk.Frame):
         canvas = TreeDisplay(self)
         canvas.grid(row=0, column=1)
 
+
     # Nu nog naam LA
-    def get_full_answer(self, ranklist, name, parents):
+    def get_answer(self, name, rank, parents):
+        parent = parents[rank]
+        db = dataframes[rank]
+        row = db.loc[db['Naam_LA'] == name]
+        parent_ID = row[parent+'_ID'].values[0]
+        parent_row = dataframes[parent].loc[dataframes[parent]['ID'] == parent_ID]
+        answer = parent_row['Naam_LA'].values[0]
+        # print(answer)
+        return answer
+
+    def get_full_answer(self, name, ranklist, parents):
         answer = [name]
         for i in ranklist[:-1]:
-            parent = parents[i]+'_ID'
-            row = dataframes[i].loc[dataframes[i]['Naam_LA'] == name]
-            parent_ID = row[parent].values[0]
-            parent_row = dataframes[parents[i]].loc[dataframes[parents[i]]['ID'] == parent_ID]
-            name = parent_row['Naam_LA'].values[0]
+            name = self.get_answer(name, i, parents)
             answer.append(name)
-        print(answer)
+        # print(answer)
         return answer
 
-    # Hardcoded ID weghalen
-    def retrieve_answer(self, rank_df, parent_df, name):
-        soort = rank_df.loc[rank_df['Naam_NL'] == name]
-        parent_ID = soort['Familie_ID'].values[0]
-        familie = parent_df.loc[parent_df['ID'] == parent_ID]
-        answer = familie['Naam_LA'].values[0]
-        return answer
-
-    def update_question(self, message, questions, rank, parents):
-        parent = parents[rank]
-        message.config(text = questions[parent])
+    def update_question(self, message, entry, questions, rank, parents):
+        self.user_ans.append(entry.get())
+        if parents[self.current_rank] == None:
+            print(self.user_ans)
+            return
+        self.current_rank = parents[self.current_rank]
+        message.config(text = questions[rank])
+        entry.delete(0, tk.END)
 
     def show_answers(self, options, var):
         for option, value in options:
             b = tk.Radiobutton(self, text = option, variable = var, value = value, anchor=tk.W)
             b.grid(sticky="ew")
 
+    # def ask_questions(self, message, entry, ranklist, questions, parents):
+    #     ans = entry.get()
+    #     ans_user = [ans]
+    #     # rank = parents["Start"]
+    #     # init_q = questions[init_rank]
+    #     # self.update_question(message, entry, questions, init_rank, parents)
+    #     for i in ranklist:
+    #
+    #         ans = entry.get()
+
+
+
+
 # Herbruikbaar canvas waar taxonomische bomen in getekend kunnen worden.
 class TreeDisplay(tk.Canvas):
 
     def __init__(self, master):
         tk.Canvas.__init__(self, master)
-        canvas = tk.Canvas(self, bg="white", height=800, width=450)
+        canvas = tk.Canvas(self, bg="white", height=600, width=450)
         colors = ['#99ccff', '#b3ff66', '#ffd699', '#00b3b3', '#ff9999', '#ffff99']
         canvas.grid()
         nodes = []
@@ -189,8 +220,8 @@ class TreeDisplay(tk.Canvas):
     def draw_nodes(self, canvas, colors, nodelist, X, Y):
         x = X.get()
         y = Y.get()
-        for i in range(len(ranklist)):
-            self.draw_node(canvas, ranklist[i], colors[i], X, Y, nodelist)
+        for i in range(len(nodelist)):
+            self.draw_node(canvas, nodelist[i], colors[i], X, Y, nodelist)
 
 
     def connect_nodes(self, canvas, nodelist):
