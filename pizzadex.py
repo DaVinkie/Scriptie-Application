@@ -10,7 +10,7 @@ class AppWindow(tk.Tk):
 
         tk.Tk.__init__(self)
         self.title("LinneausDex - DEV")
-        self.geometry("450x800")
+        self.geometry("900x800")
         global used_font
         used_font = tkF.Font(family="Courier", size=12)
 
@@ -74,12 +74,8 @@ class QuestionWindow(tk.Frame):
         tk.Frame.__init__(self, master)
 
         self.user_ans = []
-        self.real_ans = []
-
-        self.current_rank = "Soort"
-
-        ranklist = ["Soort", "Familie", "Orde", "Klasse", "Stam", "Rijk"]
-        n_ranks = len(ranklist)
+        # self.real_ans = []
+        self.current_rank = ranklist[0]
 
         soort_q = "Wat is de Nederlandse naam van de soort die je wilt classificeren?"
         familie_q = "Tot welke familie behoort deze soort?"
@@ -106,39 +102,36 @@ class QuestionWindow(tk.Frame):
             "Stam": "Rijk",
             "Rijk": None
         }
+        self.real_ans = self.get_full_answer("Canis aureus", PARENTS)
 
         questionframe = tk.Frame(self, height=600, width=440, bg="white",
                                     bd=1, relief=tk.SOLID)
         questionframe.grid(padx=5, pady=5, row=0, column=0, sticky="nsew")
-        # questionframe.grid_propagate(False)
+        questionframe.grid_propagate(False)
         question = tk.Message(questionframe, width=430, bg="white")
         question.grid(sticky="nsew")
-        # rank = PARENTS["Start"]
 
-
-        # ans = tk.IntVar()
         ans = tk.StringVar()
 
         field = tk.Entry(self, textvariable = ans)
         field.grid(padx=5, pady=5, sticky = "nsew")
-        self.update_question(question, field, QUESTIONS, self.current_rank, PARENTS)
+        self.init_question(question, QUESTIONS)
 
         s = tk.Button(self, text="submit",
-            command = lambda: self.update_question(question, field, QUESTIONS, self.current_rank, PARENTS))
+            command = lambda: self.update_question(question, field, QUESTIONS, PARENTS))
         # s = tk.Button(self, text="submit",
         #     command = lambda: self.get_full_answer(ans.get(), ranklist, PARENTS))
         # s = tk.Button(self, text="submit",
         #     command = lambda: self.get_answer(PARENTS, "Soort", ans.get()))
         s.grid(sticky="nsew")
 
-        # print(self.retrieve_answer(soort_df, familie_df, "Bosmuis"))
 
         button = tk.Button(self, text = " Home ",
-                            command = lambda: controller.show_frame(MainWindow))
+                            command = lambda: self.clean_page(controller, question, field, QUESTIONS))
         button.grid(sticky="nsew")
 
         canvas = TreeDisplay(self)
-        canvas.grid(row=0, column=1)
+        canvas.grid(row=0, column=1, columnspan=2)
 
 
     # Nu nog naam LA
@@ -152,7 +145,7 @@ class QuestionWindow(tk.Frame):
         # print(answer)
         return answer
 
-    def get_full_answer(self, name, ranklist, parents):
+    def get_full_answer(self, name, parents):
         answer = [name]
         for i in ranklist[:-1]:
             name = self.get_answer(name, i, parents)
@@ -160,30 +153,30 @@ class QuestionWindow(tk.Frame):
         # print(answer)
         return answer
 
-    def update_question(self, message, entry, questions, rank, parents):
+    def init_question(self, message, questions):
+        message.config(text = questions[self.current_rank])
+
+    def update_question(self, message, entry, questions, parents):
         self.user_ans.append(entry.get())
         if parents[self.current_rank] == None:
             print(self.user_ans)
             return
         self.current_rank = parents[self.current_rank]
-        message.config(text = questions[rank])
+        message.config(text = questions[self.current_rank])
         entry.delete(0, tk.END)
+
+    def clean_page(self, controller, message, entry, questions):
+        self.user_ans = []
+        self.real_ans = []
+        self.current_rank = ranklist[0]
+        entry.delete(0, tk.END)
+        self.init_question(message, questions)
+        controller.show_frame(MainWindow)
 
     def show_answers(self, options, var):
         for option, value in options:
             b = tk.Radiobutton(self, text = option, variable = var, value = value, anchor=tk.W)
             b.grid(sticky="ew")
-
-    # def ask_questions(self, message, entry, ranklist, questions, parents):
-    #     ans = entry.get()
-    #     ans_user = [ans]
-    #     # rank = parents["Start"]
-    #     # init_q = questions[init_rank]
-    #     # self.update_question(message, entry, questions, init_rank, parents)
-    #     for i in ranklist:
-    #
-    #         ans = entry.get()
-
 
 
 
@@ -192,48 +185,64 @@ class TreeDisplay(tk.Canvas):
 
     def __init__(self, master):
         tk.Canvas.__init__(self, master)
-        canvas = tk.Canvas(self, bg="white", height=600, width=450)
+        canvas = tk.Canvas(self, bg="white", height=600, width=440)
         colors = ['#99ccff', '#b3ff66', '#ffd699', '#00b3b3', '#ff9999', '#ffff99']
-        canvas.grid()
-        nodes = []
+        canvas.grid(columnspan=3, padx=5, pady=5)
         curr_X  = tk.IntVar()
         curr_Y = tk.IntVar()
         curr_X.set(6), curr_Y.set(6)
+        self.answer_list = []
+        self.node_list = []
+
+
         b = tk.Button(self, text="square",
-            command = lambda: self.draw_node(canvas, "Kaasmakker", colors[2], curr_X, curr_Y, nodes))
+            command = lambda: self.draw_node(canvas, "Bosmuis", colors[2], curr_X, curr_Y))
         b.grid(column=0, row=1)
         b2 = tk.Button(self, text="squarespace",
-            command = lambda: self.draw_nodes(canvas, colors, nodes, curr_X, curr_Y))
+            command = lambda: self.draw_nodes(canvas, colors, self.answer_list, curr_X, curr_Y))
         b2.grid(column=1, row=1)
+        b3 = tk.Button(self, text="spacesquare",
+            command = lambda: self.draw_answer(master, canvas, colors, curr_X, curr_Y))
+        b3.grid(column=2, row=1)
 
-    def draw_node(self, canvas, rank, color, X, Y, nodelist):
+    def draw_node(self, canvas, rank, color, X, Y):
+        anchor_X = ((canvas.winfo_width()-2)/4) # alligns nodes
         x = X.get()
         y = Y.get()
         node_width = used_font.measure(rank) + 10
-        # print("Width = ", node_width)
-        node = canvas.create_rectangle(x, y, x + node_width, y + NODE_HEIGHT, fill = color)
-        nodelist.append(node)
-        canvas.create_text(x + (node_width/2), y + (NODE_HEIGHT/2), text = rank, font = used_font)
+        start_X = anchor_X - (node_width/2) - 6
+        node = canvas.create_rectangle(start_X, y, start_X + node_width, y + NODE_HEIGHT, fill = color)
+        self.node_list.append(node)
+        self.answer_list.append(rank)
+        canvas.create_text(anchor_X - 3, y + (NODE_HEIGHT/2), text = rank, font = used_font)
         Y.set(y+NODE_HEIGHT*2)
-        self.connect_nodes(canvas, nodelist)
+        self.connect_nodes(canvas)
 
-    def draw_nodes(self, canvas, colors, nodelist, X, Y):
+    def draw_nodes(self, canvas, colors, answers, X, Y):
         x = X.get()
         y = Y.get()
-        for i in range(len(nodelist)):
-            self.draw_node(canvas, nodelist[i], colors[i], X, Y, nodelist)
+        for i in range(len(answers)):
+            self.draw_node(canvas, answers[i], colors[i], X, Y)
 
 
-    def connect_nodes(self, canvas, nodelist):
-        if len(nodelist) > 1:
-            for i in range(len(nodelist)-1):
-                xa0, ya0, xa1, ya1 = canvas.bbox(nodelist[i])
-                xb0, yb0, xb1, yb1 = canvas.bbox(nodelist[i+1])
+    def connect_nodes(self, canvas):
+        if len(self.node_list) > 1:
+            for i in range(len(self.node_list)-1):
+                xa0, ya0, xa1, ya1 = canvas.bbox(self.node_list[i])
+                xb0, yb0, xb1, yb1 = canvas.bbox(self.node_list[i+1])
                 # print(xb0, xb1, yb0, yb1)
                 # print(xa0, xa1, ya0, ya1)
                 # print((xa0+xa1)/2, ya1-1, (xb0+xb1)/2, yb0+1)
                 canvas.create_line((xa0+xa1)/2, ya1-1, (xb0+xb1)/2, yb0+1)
 
+    def get_answer_list(self, master):
+        answers = master.real_ans
+        return answers
+
+    def draw_answer(self, master, canvas, colors, X, Y):
+        answers = self.get_answer_list(master)
+        print(answers)
+        self.draw_nodes(canvas, colors, answers, X, Y)
 
 NODE_WIDTH = 50
 NODE_HEIGHT = 30
@@ -242,7 +251,8 @@ BRANCH_LENGTH = 25
 ranklist = ["Soort", "Familie", "Orde", "Klasse", "Stam", "Rijk"]
 dataframes = {}
 for i in ranklist:
-    db = pd.read_excel("data\\" + i + ".xlsx")
+    db = pd.read_excel("data/" + i + ".xlsx") # Unix
+    #db = pd.read_excel("data\\" + i + ".xlsx") # Windows
     dataframes[i] = pd.DataFrame(db)
 
 app = AppWindow()
