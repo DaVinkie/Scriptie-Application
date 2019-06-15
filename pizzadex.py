@@ -2,6 +2,8 @@
 import tkinter as tk
 import tkinter.font as tkF
 import pandas as pd
+import math
+from random import randint
 
 # Geraamte van de applicatie
 class AppWindow(tk.Tk):
@@ -38,9 +40,12 @@ class AppWindow(tk.Tk):
         self.frames[MainWindow] = main_frame
         question_frame = QuestionWindow(main_window, self)
         self.frames[QuestionWindow] = question_frame
+        compare_frame = CompareWindow(main_window, self)
+        self.frames[CompareWindow] = compare_frame
 
         main_frame.grid(row=0, column=1, sticky="nsew")
         question_frame.grid(row=0, column=1, sticky="nsew")
+        compare_frame.grid(row=0, column=1, sticky="nsew")
         # main_frame.grid_propagate(False) // Heeft geen size dus werkt niet
         # question_frame.grid_propagate(False)
 
@@ -48,6 +53,7 @@ class AppWindow(tk.Tk):
 
     def show_frame(self, frame):
         selected = self.frames[frame]
+        print(selected)
         selected.tkraise()
 
     def top_window(self, frame):
@@ -61,8 +67,8 @@ class SideMenu(tk.Frame):
         self.parent = master
         controller.grid_columnconfigure(0, weight=1)
 
-        home = tk.Button(controller, text="home", command=self.go_home)
-        back = tk.Button(controller, text="back", command=self.go_home)
+        home = tk.Button(controller, text=" home ", command=self.go_home)
+        back = tk.Button(controller, text=" refresh ", command=self.refresh)
 
         home.grid(row=0, sticky="ew")
         back.grid(row=1, sticky="ew")
@@ -72,10 +78,13 @@ class SideMenu(tk.Frame):
     def show_event(event):
         print(event.x, event.y)
 
-    def go_home(self):
+    def refresh(self):
         active = self.parent.top_window(self.parent.main)
         print(self.parent.main, active)
         active.clean_page()
+
+    def go_home(self):
+        self.refresh()
         self.parent.show_frame(MainWindow)
         # self.parent.
 
@@ -88,27 +97,64 @@ class MainWindow(tk.Frame):
         # QuestionWindow vervangen door correcte waarde
         pages = [
             ("Classificeer", "DarkSlategray2", QuestionWindow),
-            ("Vergelijk", "khaki2", QuestionWindow),
+            ("Vergelijk", "khaki2", CompareWindow),
             ("Modelleer", "light pink", QuestionWindow),
             ("Verbeter", "firebrick1", QuestionWindow)
         ]
 
         frames = []
-        for i in range(4):
+        for i in range(4): # make variable
             f = tk.Frame(self, height=215, width=215)
             f.pack_propagate(False)
             frames.append(f)
 
+        buttons = []
         for i in range(len(frames)):
-            b = tk.Button(frames[i], text=pages[i][0], bg=pages[i][1],
-                            command = lambda: controller.show_frame(pages[i][2]))
-            b.pack(expand=True, fill=tk.BOTH)
+            buttons.append(tk.Button(frames[i], text=pages[i][0], bg=pages[i][1],
+                            command = lambda i=i: controller.show_frame(pages[i][2])))
+            buttons[i].pack(expand=True, fill=tk.BOTH)
 
         # Misschien in een loop.
         frames[0].grid(row=0, column=0, padx=5, pady=5)
         frames[1].grid(row=0, column=1, padx=5, pady=5)
         frames[2].grid(row=1, column=0, padx=5, pady=5)
         frames[3].grid(row=1, column=1, padx=5, pady=5)
+
+# FrameWork for all the Windows to inherit from
+class FrameWork(tk.Frame):
+
+    def __init__(self, parent, host):
+        tk.Frame.__init__(self, parent)
+        # main components of every window
+        self.parent     = parent
+        self.host      = host
+        self.real_answer = []
+        self.user_answer = []
+
+        self.SUPER_RANKS = {
+            "Start": "Soort",
+            "Soort": "Familie",
+            "Familie": "Orde",
+            "Orde": "Klasse",
+            "Klasse": "Stam",
+            "Stam": "Rijk",
+            "Rijk": None
+        }
+
+    # Returns a random entry from the base dataframe, in this case Soort
+    def get_random(self):
+        base = "Soort" # variable for future variations of base layer
+        base_layer = dataframes[base]
+        max = len(base_layer)
+        r = randint(0, max)
+        row = base_layer.iloc[[r]]
+
+        if isinstance(row['Naam_NL'].values[0], str):
+            print("NL", row['Naam_NL'].values[0])
+            return row['Naam_NL'].values[0]
+        else:
+            print("LA", row['Naam_LA'].values[0])
+            return row['Naam_LA'].values[0]
 
 # Voor het classificatie gedeelte
 class QuestionWindow(tk.Frame):
@@ -232,16 +278,39 @@ class Node():
         self.rec = canvas.create_rectangle(1, 1, 99, 49, fill="#ffffff")
         self.txt = canvas.create_text(50, 25, text="Node") #font = used_font)
 
-class CompareWindow(tk.Frame):
-    def __init__(self, master, controller):
+class CompareWindow(FrameWork):
+    def __init__(self, parent, host):
+        FrameWork.__init__(self, parent, host)
+
+        self.question = tk.Label(self,
+                                text="Welke van de twee bomen is de juiste?")
+        self.left = tk.Canvas(self, bd=1, bg="white", relief="solid")
+        self.right = tk.Canvas(self, bd=1, bg="white", relief="solid")
+        self.testbutton = tk.Button(self, text="TEST", command=self.get_random)
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=10)
+
+        self.question.grid(row=0, sticky="nsew", columnspan=2)
+        self.left.grid(row=1, column=0, sticky="nsew")
+        self.right.grid(row=1, column=1, sticky="nsew")
+        self.testbutton.grid(row=2)
+    #
+    # def foobar(self):
+    #     print(self.SUPER_RANKS)
+
+    def clean_page(self):
         self.user_answer = []
         self.real_answer = []
-
+        self.left.delete("all")
+        self.right.delete("all")
 
 class ExploreWindow(tk.Frame):
     def __init__(self, master, controller):
         self.user_answer = []
         self.real_answer = []
+        self.canvas = TreeDisplay(self)
+        self.canvas.grid(row=0, column=0)
 
 class ClassifyWindow(tk.Frame):
     def __init__(self, master, controller):
@@ -259,9 +328,9 @@ class TreeDisplay(tk.Canvas):
 
     def __init__(self, master):
         tk.Canvas.__init__(self, master)
-        canvas = tk.Canvas(self, bg="white", height=600, width=440)
+        self.canvas = tk.Canvas(self, bg="white") #, height=600, width=440)
         colors = ['#99ccff', '#b3ff66', '#ffd699', '#00b3b3', '#ff9999', '#ffff99']
-        canvas.grid(columnspan=3, padx=5, pady=5)
+        self.canvas.grid(columnspan=3, padx=5, pady=5)
         curr_X  = tk.IntVar()
         curr_Y = tk.IntVar()
         curr_X.set(6), curr_Y.set(6)
@@ -270,13 +339,13 @@ class TreeDisplay(tk.Canvas):
 
 
         b = tk.Button(self, text="square",
-            command = lambda: self.draw_node(canvas, "Bosmuis", colors[2], curr_X, curr_Y))
+            command = lambda: self.draw_node(self.canvas, master.field.get(), colors[2], curr_X, curr_Y))
         b.grid(column=0, row=1)
         b2 = tk.Button(self, text="squarespace",
-            command = lambda: self.draw_nodes(canvas, colors, self.answer_list, curr_X, curr_Y))
+            command = lambda: self.draw_nodes(self.canvas, colors, self.answer_list, curr_X, curr_Y))
         b2.grid(column=1, row=1)
         b3 = tk.Button(self, text="spacesquare",
-            command = lambda: self.draw_answer(master, canvas, colors, curr_X, curr_Y))
+            command = lambda: self.draw_answer(self.master, self.canvas, colors, curr_X, curr_Y))
         b3.grid(column=2, row=1)
 
     def draw_node(self, canvas, rank, color, X, Y):
@@ -320,7 +389,9 @@ class TreeDisplay(tk.Canvas):
         self.draw_nodes(canvas, colors, answers, X, Y)
 
     def clear(self):
-        self.delete("all") # iets anders dan all
+        self.node_list = []
+        self.answer_list = []
+        self.canvas.delete("all") # iets anders dan all
 
 NODE_WIDTH = 50
 NODE_HEIGHT = 30
