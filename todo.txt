@@ -1,0 +1,8 @@
+Vul in --> haal antwoord op --> voeg antwoord toe aan lijst --> stel nieuwe vraag over antwoord
+eerste keer? --> haal hele antwoord op
+
+functie die vragen stelt - loopt over ranklist
+
+beginnen met startvraag
+    user input in lijst
+    per rank nieuwe vraag

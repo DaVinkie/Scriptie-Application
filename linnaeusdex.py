@@ -20,8 +20,10 @@ class AppWindow(tk.Tk):
         global used_font
         used_font = tkF.Font(family="Courier", size=12)
 
+        self.grid_rowconfigure(0, weight=1)
+        # self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=8)
+        self.grid_columnconfigure(1, weight=7)
 
         side = tk.Frame(self, bd=2, relief=tk.SOLID) # width=(rw/8)
         sidebar = SideMenu(side, self)
@@ -30,6 +32,8 @@ class AppWindow(tk.Tk):
         sidebar.grid(column=0, sticky="nsew")
 
         main_window = tk.Frame(self, bd=2, relief=tk.SOLID) #width=450
+        main_window.grid_rowconfigure(0, weight=1)
+        main_window.grid_columnconfigure(0, weight=1)
         main_window.grid(row=0, column=1, sticky="nsew")
 
         self.main = main_window
@@ -43,11 +47,9 @@ class AppWindow(tk.Tk):
         compare_frame = CompareWindow(main_window, self)
         self.frames[CompareWindow] = compare_frame
 
-        main_frame.grid(row=0, column=1, sticky="nsew")
-        question_frame.grid(row=0, column=1, sticky="nsew")
-        compare_frame.grid(row=0, column=1, sticky="nsew")
-        # main_frame.grid_propagate(False) // Heeft geen size dus werkt niet
-        # question_frame.grid_propagate(False)
+        main_frame.grid(row=0, column=0, sticky="nsew")
+        question_frame.grid(row=0, column=0, sticky="nsew")
+        compare_frame.grid(row=0, column=0, sticky="nsew")
 
         self.show_frame(MainWindow)
 
@@ -93,6 +95,10 @@ class MainWindow(tk.Frame):
 
     def __init__(self, master, controller):
         tk.Frame.__init__(self, master)
+
+        # for i in range(2):
+        #     self.grid_rowconfigure(i, weight=1)
+        #     self.grid_columnconfigure(i, weight=1)
 
         # QuestionWindow vervangen door correcte waarde
         pages = [
@@ -143,11 +149,11 @@ class FrameWork(tk.Frame):
 
     # Returns a random entry from the base dataframe, in this case Soort
     def get_random(self):
-        base = "Soort" # variable for future variations of base layer
-        base_layer = dataframes[base]
-        max = len(base_layer)
-        r = randint(0, max)
-        row = base_layer.iloc[[r]]
+        base        = ranklist[0] # variable for future variations of base layer
+        base_layer  = dataframes[base]
+        max         = len(base_layer)
+        r           = randint(0, max)
+        row         = base_layer.iloc[[r]]
 
         if isinstance(row['Naam_NL'].values[0], str):
             print("NL", row['Naam_NL'].values[0])
@@ -155,6 +161,39 @@ class FrameWork(tk.Frame):
         else:
             print("LA", row['Naam_LA'].values[0])
             return row['Naam_LA'].values[0]
+
+    # Returns the -Dutch if present- name of the parent taxon of a given name.
+    def get_parent(self, name, rank):
+        super   = self.SUPER_RANKS[rank]
+        df      = dataframes[rank]
+        df_s    = dataframes[super]
+        # print(df['Naam_NL'] == name)
+        if df['Naam_NL'].str.contains(name).any():
+            row = df.loc[df['Naam_NL'] == name]
+        elif df['Naam_LA'].str.contains(name).any():
+            row = df.loc[df['Naam_LA'] == name]
+        else:
+            print("Error: Naam niet bekend in database.")
+            return
+
+        super_id    = row[super + '_ID'].values[0]
+        super_row   = df_s.loc[df_s['ID'] == super_id]
+
+        if isinstance(super_row['Naam_NL'].values[0], str):
+            print("NL", super_row['Naam_NL'].values[0])
+            return super_row['Naam_NL'].values[0]
+        else:
+            print("LA",super_row['Naam_LA'].values[0])
+            return super_row['Naam_LA'].values[0]
+
+    # Returns a list containing the entire branch ending at the given name.
+    def get_branch(self, name):
+        branch = [name]
+        for rank in ranklist[:-1]:
+            name = self.get_parent(name, rank)
+            branch.append(name)
+        branch.reverse()
+        return branch
 
 # Voor het classificatie gedeelte
 class QuestionWindow(tk.Frame):
@@ -252,7 +291,6 @@ class QuestionWindow(tk.Frame):
     def update_question(self):
         name = self.field.get()
         if self.first:
-            print("cucked")
             self.real_ans = self.get_full_answer(name)
             self.first = False
 
@@ -287,14 +325,20 @@ class CompareWindow(FrameWork):
         self.left = tk.Canvas(self, bd=1, bg="white", relief="solid")
         self.right = tk.Canvas(self, bd=1, bg="white", relief="solid")
         self.testbutton = tk.Button(self, text="TEST", command=self.get_random)
+        # self.testbutton2 = tk.Button(self, text="TEST", command=self.get_random)
 
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=10)
+        # self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
 
-        self.question.grid(row=0, sticky="nsew", columnspan=2)
+        self.question.grid(row=0, columnspan=2, sticky="nsew")
         self.left.grid(row=1, column=0, sticky="nsew")
         self.right.grid(row=1, column=1, sticky="nsew")
-        self.testbutton.grid(row=2)
+        # self.testbutton.grid(row=2)
+
+        # print(self.get_branch("Bosmuis"))
+        # self.testbutton2.grid(row=3)
     #
     # def foobar(self):
     #     print(self.SUPER_RANKS)
