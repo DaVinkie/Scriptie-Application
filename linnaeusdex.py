@@ -3,7 +3,7 @@ import tkinter as tk
 import tkinter.font as tkF
 import pandas as pd
 import math
-from random import randint
+from random import randint, shuffle
 
 # Geraamte van de applicatie
 class AppWindow(tk.Tk):
@@ -12,7 +12,6 @@ class AppWindow(tk.Tk):
 
         tk.Tk.__init__(self)
         self.title("LinneausDex - DEV")
-        # self.geometry("900x800")
         # self.update_idletasks()
         # rh = self.winfo_height()
         # rw = self.winfo_width()
@@ -21,7 +20,6 @@ class AppWindow(tk.Tk):
         used_font = tkF.Font(family="Courier", size=12)
 
         self.grid_rowconfigure(0, weight=1)
-        # self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=7)
 
@@ -40,23 +38,50 @@ class AppWindow(tk.Tk):
         # pages = ["Classificeer", "Vergelijk", "Modelleer", "Verbeter"]
         self.frames = {}
         # in een pages loop
-        main_frame = MainWindow(main_window, self)
-        self.frames[MainWindow] = main_frame
-        question_frame = QuestionWindow(main_window, self)
+        main_frame      = MainWindow(main_window, self)
+        question_frame  = QuestionWindow(main_window, self)
+        compare_frame   = CompareWindow(main_window, self)
+        explore_frame   = ExploreWindow(main_window, self)
+
+        self.frames[MainWindow]     = main_frame
         self.frames[QuestionWindow] = question_frame
-        compare_frame = CompareWindow(main_window, self)
-        self.frames[CompareWindow] = compare_frame
+        self.frames[CompareWindow]  = compare_frame
+        self.frames[ExploreWindow]  = explore_frame
+
+        # unfinished
+        classify_frame  = ClassifyWindow(main_window, self)
+        correct_frame   = CorrectWindow(main_window, self)
+        quiz_frame      = QuizWindow(main_window, self)
+        inter_frame     = InterWindow(main_window, self)
+        infer_frame     = InferWindow(main_window, self)
+        differ_frame    = DifferWindow(main_window, self)
+
+        self.frames[ClassifyWindow] = classify_frame
+        self.frames[CorrectWindow]  = correct_frame
+        self.frames[QuizWindow]     = quiz_frame
+        self.frames[InterWindow]    = inter_frame
+        self.frames[InferWindow]    = infer_frame
+        self.frames[DifferWindow]   = differ_frame
 
         main_frame.grid(row=0, column=0, sticky="nsew")
         question_frame.grid(row=0, column=0, sticky="nsew")
         compare_frame.grid(row=0, column=0, sticky="nsew")
+        explore_frame.grid(row=0, column=0, sticky="nsew")
+        classify_frame.grid(row=0, column=0, sticky="nsew")
+        correct_frame.grid(row=0, column=0, sticky="nsew")
+        quiz_frame.grid(row=0, column=0, sticky="nsew")
+        inter_frame.grid(row=0, column=0, sticky="nsew")
+        infer_frame.grid(row=0, column=0, sticky="nsew")
+        differ_frame.grid(row=0, column=0, sticky="nsew")
+
 
         self.show_frame(MainWindow)
 
     def show_frame(self, frame):
         selected = self.frames[frame]
-        print(selected)
+        # print(selected)
         selected.tkraise()
+        selected.start()
 
     def top_window(self, frame):
         top = frame.winfo_children()
@@ -82,49 +107,65 @@ class SideMenu(tk.Frame):
 
     def refresh(self):
         active = self.parent.top_window(self.parent.main)
-        print(self.parent.main, active)
+        # print(self.parent.main, active)
         active.clean_page()
 
     def go_home(self):
         self.refresh()
         self.parent.show_frame(MainWindow)
-        # self.parent.
+
 
 # Hoofdscherm / Hoofdmenu
 class MainWindow(tk.Frame):
-
     def __init__(self, master, controller):
         tk.Frame.__init__(self, master)
 
-        # for i in range(2):
-        #     self.grid_rowconfigure(i, weight=1)
-        #     self.grid_columnconfigure(i, weight=1)
-
         # QuestionWindow vervangen door correcte waarde
         pages = [
-            ("Classificeer", "DarkSlategray2", QuestionWindow),
-            ("Vergelijk", "khaki2", CompareWindow),
-            ("Modelleer", "light pink", QuestionWindow),
-            ("Verbeter", "firebrick1", QuestionWindow)
+            ("Beantwoord",  "DarkSlategray2",   QuestionWindow),
+            ("Vergelijk",   "khaki2",           CompareWindow),
+            ("Ontdek",      "light pink",       ExploreWindow),
+            ("Classificeer","DarkSlategray2",   ClassifyWindow),
+            ("Quiz",        "khaki2",           QuizWindow),
+            ("Verbeter",    "firebrick1",       CorrectWindow),
+            ("Interpreteer","khaki2",           InterWindow),
+            ("Voorspel",    "light pink",       InferWindow),
+            ("Groepeer",    "firebrick1",       DifferWindow),
+            ("Maak",        "DarkSlategray2",   CreateWindow)
         ]
 
         frames = []
-        for i in range(4): # make variable
-            f = tk.Frame(self, height=215, width=215)
-            f.pack_propagate(False)
+        for i in range(len(pages)): # make variable
+            f = tk.Frame(self, bd=1, relief="solid")
+            f.grid_rowconfigure(0, weight=1)
+            f.grid_columnconfigure(0, weight=1)
+            # f.pack_propagate(False)
             frames.append(f)
 
         buttons = []
         for i in range(len(frames)):
-            buttons.append(tk.Button(frames[i], text=pages[i][0], bg=pages[i][1],
+            buttons.append(tk.Button(frames[i], width=10, height=10, text=pages[i][0], bg=pages[i][1],
                             command = lambda i=i: controller.show_frame(pages[i][2])))
-            buttons[i].pack(expand=True, fill=tk.BOTH)
+            # buttons[i].pack(expand=True, fill=tk.BOTH)
+            buttons[i].grid(row=0, column=0, sticky="nsew")
 
         # Misschien in een loop.
+        for i in range(3):
+            self.grid_rowconfigure(i, weight=1)
+            self.grid_columnconfigure(i, weight=1)
+
         frames[0].grid(row=0, column=0, padx=5, pady=5)
         frames[1].grid(row=0, column=1, padx=5, pady=5)
-        frames[2].grid(row=1, column=0, padx=5, pady=5)
-        frames[3].grid(row=1, column=1, padx=5, pady=5)
+        frames[2].grid(row=0, column=2, padx=5, pady=5)
+        frames[3].grid(row=1, column=0, padx=5, pady=5)
+        frames[4].grid(row=1, column=1, padx=5, pady=5)
+        frames[5].grid(row=1, column=2, padx=5, pady=5)
+        frames[6].grid(row=2, column=0, padx=5, pady=5)
+        frames[7].grid(row=2, column=1, padx=5, pady=5)
+        frames[8].grid(row=2, column=2, padx=5, pady=5)
+
+    def start(self):
+        print("Start ", self)
 
 # FrameWork for all the Windows to inherit from
 class FrameWork(tk.Frame):
@@ -132,59 +173,90 @@ class FrameWork(tk.Frame):
     def __init__(self, parent, host):
         tk.Frame.__init__(self, parent)
         # main components of every window
-        self.parent     = parent
-        self.host      = host
+        self.parent = parent
+        self.host   = host
         self.real_answer = []
         self.user_answer = []
 
         self.SUPER_RANKS = {
-            "Start": "Soort",
-            "Soort": "Familie",
-            "Familie": "Orde",
-            "Orde": "Klasse",
-            "Klasse": "Stam",
-            "Stam": "Rijk",
-            "Rijk": None
+            "Start":    None,
+            "Soort":    "Familie",
+            "Familie":  "Orde",
+            "Orde":     "Klasse",
+            "Klasse":   "Stam",
+            "Stam":     "Rijk",
+            "Rijk":     "Start"
+        }
+        self.SUB_RANKS = {
+            "Soort":    None,
+            "Familie":  "Soort",
+            "Orde":     "Familie",
+            "Klasse":   "Orde",
+            "Stam":     "Klasse",
+            "Rijk":     "Stam",
+            "Start":    "Rijk"
+        }
+        self.COLORS = {
+            "Start":    '#ffffff',
+            "Soort":    '#99ccff',
+            "Familie":  '#b3ff66',
+            "Orde":     '#ffd699',
+            "Klasse":   '#00b3b3',
+            "Stam":     '#ff9999',
+            "Rijk":     '#ffff99'
         }
 
     # Returns a random entry from the base dataframe, in this case Soort
-    def get_random(self):
-        base        = ranklist[0] # variable for future variations of base layer
-        base_layer  = dataframes[base]
-        max         = len(base_layer)
+    def get_random(self, rank="Soort"):
+        # base        = ranklist[0] # variable for future variations of base layer
+        base_layer  = dataframes[rank]
+        max         = len(base_layer)-1
         r           = randint(0, max)
         row         = base_layer.iloc[[r]]
 
         if isinstance(row['Naam_NL'].values[0], str):
-            print("NL", row['Naam_NL'].values[0])
             return row['Naam_NL'].values[0]
         else:
-            print("LA", row['Naam_LA'].values[0])
             return row['Naam_LA'].values[0]
+
+    # Returns the row from a dataframe given the right name.
+    def get_row(self, name, df):
+        if df['Naam_NL'].str.contains(name).any():
+            row = df.loc[df['Naam_NL'] == name]
+            return row
+        elif df['Naam_LA'].str.contains(name).any():
+            row = df.loc[df['Naam_LA'] == name]
+            return row
+        else:
+            print("Error: Naam niet bekend in database.")
+            return
+
+    # Retrieves the Dutch name from a row if it's there, returns the Latin name otherwise.
+    def get_name(self, row):
+        if isinstance(row['Naam_NL'].values[0], str):
+            return row['Naam_NL'].values[0]
+        else:
+            return row['Naam_LA'].values[0]
+
+    # Picks the Dutch name if it has a value, returns Latin otherwise.
+    def get_name_frame(self, dutch, latin):
+        if isinstance(dutch, str):
+            return dutch
+        else:
+            return latin
 
     # Returns the -Dutch if present- name of the parent taxon of a given name.
     def get_parent(self, name, rank):
         super   = self.SUPER_RANKS[rank]
         df      = dataframes[rank]
         df_s    = dataframes[super]
-        # print(df['Naam_NL'] == name)
-        if df['Naam_NL'].str.contains(name).any():
-            row = df.loc[df['Naam_NL'] == name]
-        elif df['Naam_LA'].str.contains(name).any():
-            row = df.loc[df['Naam_LA'] == name]
-        else:
-            print("Error: Naam niet bekend in database.")
-            return
 
+        row         = self.get_row(name, df)
         super_id    = row[super + '_ID'].values[0]
         super_row   = df_s.loc[df_s['ID'] == super_id]
-
-        if isinstance(super_row['Naam_NL'].values[0], str):
-            print("NL", super_row['Naam_NL'].values[0])
-            return super_row['Naam_NL'].values[0]
-        else:
-            print("LA",super_row['Naam_LA'].values[0])
-            return super_row['Naam_LA'].values[0]
+        print("DEBUG", rank, name)
+        parent = self.get_name(super_row)
+        return parent
 
     # Returns a list containing the entire branch ending at the given name.
     def get_branch(self, name):
@@ -194,6 +266,20 @@ class FrameWork(tk.Frame):
             branch.append(name)
         branch.reverse()
         return branch
+
+    # Returns a list of all sub taxons that have the given name as parent.
+    def get_children(self, name, rank):
+        sub     = self.SUB_RANKS[rank]
+        df      = dataframes[rank]
+        df_sub  = dataframes[sub]
+
+        row     = self.get_row(name, df)
+        id      = row['ID'].values[0]
+        sub_rows = df_sub.loc[df_sub[rank + '_ID'] == id]
+
+        children = [self.get_name_frame(dutch, latin) for dutch, latin in
+                    zip(sub_rows['Naam_NL'], sub_rows['Naam_LA'])]
+        return children
 
 # Voor het classificatie gedeelte
 class QuestionWindow(tk.Frame):
@@ -264,7 +350,8 @@ class QuestionWindow(tk.Frame):
         self.canvas.grid(row=0, column=1, columnspan=2)
 
         # Bosmuis = Apodemus sylvaticus
-
+    def start(self):
+        print("Start ", self)
     # Nu nog naam LA
     def get_answer(self, name, rank):
         parent = self.PARENTS[rank]
@@ -319,12 +406,17 @@ class Node():
 class CompareWindow(FrameWork):
     def __init__(self, parent, host):
         FrameWork.__init__(self, parent, host)
+        self.turn = 0
+        self.correct = 0
+        self.wrong_answer = []
+        self.ricardo    = tk.PhotoImage(file="ricardo.png")
+        self.siem       = tk.PhotoImage(file="siem.png")
 
-        self.question = tk.Label(self,
+        self.question = tk.Label(self, font=used_font,
                                 text="Welke van de twee bomen is de juiste?")
         self.left = tk.Canvas(self, bd=1, bg="white", relief="solid")
         self.right = tk.Canvas(self, bd=1, bg="white", relief="solid")
-        self.testbutton = tk.Button(self, text="TEST", command=self.get_random)
+        # self.testbutton = tk.Button(self, text="TEST", command=self.get_random)
         # self.testbutton2 = tk.Button(self, text="TEST", command=self.get_random)
 
         # self.grid_rowconfigure(0, weight=1)
@@ -337,34 +429,227 @@ class CompareWindow(FrameWork):
         self.right.grid(row=1, column=1, sticky="nsew")
         # self.testbutton.grid(row=2)
 
-        # print(self.get_branch("Bosmuis"))
-        # self.testbutton2.grid(row=3)
-    #
-    # def foobar(self):
-    #     print(self.SUPER_RANKS)
+        self.left.bind("<Button-1>", self.take_turn)
+        self.right.bind("<Button-1>", self.take_turn)
 
-    def clean_page(self):
-        self.user_answer = []
-        self.real_answer = []
+    def start(self):
+        self.setup_comp()
+
+    # Debug function
+    def testprint(self, event):
+        if event.widget == self.left:
+            event.widget.create_image(event.x, event.y, image=self.siem)
+        elif event.widget == self.right:
+            event.widget.create_image(event.x, event.y, image=self.ricardo)
+        if event.widget == self.left:
+            print("DEBUG: SWITCHED CORRECTLY")
+
+    # Retrieves the branch of a random entry and edits a random element to
+    # create a right and a wrong answer.
+    def create_options(self):
+        self.real_answer = self.get_branch(self.get_random())
+        self.fake_answer = self.real_answer[:]
+
+        r = randint(0, len(ranklist)-1)
+        reverse = ranklist[::-1]
+        self.fake_answer[r] = self.get_random(reverse[r])
+        # print(self.real_answer, self.fake_answer)
+
+    # Clears visual feedback and shuffles the options in place.
+    def shuffle_answers(self):
+        self.left.config(bg="white")
+        self.right.config(bg="white")
+        columns = [0,1]
+        shuffle(columns)
+        self.left.grid_configure(column=columns[0])
+        self.right.grid_configure(column=columns[1])
+
+    # Shows the user their results
+    def show_result(self):
+        print("showing_results: ", self.turn, self.correct)
+        self.clean_page()
+
+    # Does the setup for every round
+    def setup_comp(self):
+        self.turn+=1
+        self.create_options()
+        self.draw_branches()
+        self.shuffle_answers()
+
+    # Gives visual feedback to the user
+    def give_feeback(self, event):
+        if event.widget == self.left:
+            event.widget.config(bg="green")
+            self.correct+=1
+        else:
+            event.widget.config(bg="red")
+
+    # Takes a turn
+    def take_turn(self, event):
+        if self.turn >= 10:
+            self.show_result()
+        elif self.turn > 0:
+            self.give_feeback(event)
+            self.after(500, self.setup_comp)
+
+    # Draws the two potential branches on the canvas
+    def draw_branches(self):
         self.left.delete("all")
         self.right.delete("all")
+        self.draw_branch(self.left, self.real_answer)
+        self.draw_branch(self.right, self.fake_answer)
+        print("drawing branches")
 
-class ExploreWindow(tk.Frame):
-    def __init__(self, master, controller):
+    def draw_node(self, canvas, name, color, anchor, node_height, num):
+        node_width  = (used_font.measure(text=name) + 10)/2
+        pos = list(range(1, 12, 2))
+        canvas.create_rectangle((anchor-node_width), (node_height*pos[num]), (anchor+node_width),
+                                (node_height*(pos[num]+1)), fill=color)
+        canvas.create_text(anchor, (node_height*(pos[num])+(node_height/2)), text=name, font=used_font)
+
+    def draw_branch(self, canvas, branch):
+        colors = ['#99ccff', '#b3ff66', '#ffd699', '#00b3b3', '#ff9999', '#ffff99']
+        anchor      = (canvas.winfo_width()-2)/2
+        node_height = (canvas.winfo_height()-2)/13
+
+        for i in range(len(branch)):
+            self.draw_node(canvas, branch[i], colors[i], anchor, node_height, i)
+        self.connect_nodes(canvas)
+
+    def connect_nodes(self, canvas):
+        anchor = (canvas.winfo_width()-2)/2
+        con_height = (canvas.winfo_height()-2)/13
+        pos = list(range(2, 11, 2))
+        for i in pos:
+            canvas.create_line(anchor, (con_height*i), anchor, (con_height*(i+1)))
+
+    # Refreshes the page
+    def clean_page(self):
+        self.turn = 0
+        self.correct = 0
         self.user_answer = []
         self.real_answer = []
-        self.canvas = TreeDisplay(self)
-        self.canvas.grid(row=0, column=0)
+        self.wrong_answer = []
+        self.left.delete("all")
+        self.right.delete("all")
+        self.setup_comp()
 
-class ClassifyWindow(tk.Frame):
-    def __init__(self, master, controller):
-        self.user_answer = []
-        self.real_answer = []
+class ExploreWindow(FrameWork):
+    def __init__(self, parent, host):
+        FrameWork.__init__(self, parent, host)
+        self.top_node = None
+        self.bottom_nodes = []
+        self.current_rank = None
 
-class QuizWindow(tk.Frame):
+        self.description = tk.Label(self, font=used_font,
+            text="Klik op een dochter om die tak te ontdekken, klik op de wortel om een stap terug te doen.")
+        self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
+
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.description.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+        self.canvas.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
+
+    def start(self):
+        self.draw_start()
+
+    # Opens the next or the previous node
+    def explore(self, event):
+        selected = self.canvas.find_closest(event.x, event.y)
+        name = self.canvas.gettags(selected)[0]
+
+        if name == "Wortel":
+            print("Error: Root has no parents.")
+            return
+        elif name == self.top_node:
+            if self.current_rank == "Rijk":
+                self.draw_start()
+            self.top_node = self.get_parent(name, self.current_rank)
+            self.current_rank = self.SUPER_RANKS[self.current_rank]
+            self.bottom_nodes = self.get_children(self.top_node, self.current_rank)
+            self.draw_selection()
+        elif name in self.bottom_nodes:
+            if self.current_rank == self.SUPER_RANKS["Soort"]:
+                print("Error: Leaf nodes have no children.")
+                return
+            self.top_node = name
+            self.current_rank = self.SUB_RANKS[self.current_rank]
+            self.bottom_nodes = self.get_children(self.top_node, self.current_rank)
+            self.draw_selection()
+
+    def clean_page(self):
+        self.canvas.delete("all")
+        self.draw_start()
+
+    def draw_node(self, text, color, width, height, X_anchor, Y_anchor):
+        self.canvas.create_rectangle((X_anchor-(width/2)), (Y_anchor-(height/2)),
+                                    (X_anchor+(width/2)), (Y_anchor+(height/2)),
+                                    fill=color, tag=text)
+        self.canvas.create_text(X_anchor, Y_anchor, text=text, tag=text)
+
+    def draw_start(self):
+        self.top_node = "Wortel"
+        self.bottom_nodes = ["Dieren", "Planten", "Schimmels"]
+        self.current_rank = "Start"
+        self.draw_selection()
+
+    def draw_selection(self):
+        self.canvas.delete("all")
+        # Basically the amount of rows and columns except in coordinates
+        X_div = (len(self.bottom_nodes)*2)+1
+        Y_div = 5
+        # Size of the nodes
+        X_rel = self.canvas.winfo_width() / X_div
+        Y_rel = self.canvas.winfo_height() / Y_div
+        # Anchor points for parent and child nodes
+        PX_anchor = self.canvas.winfo_width() / 2
+        PY_anchor = (1.5*Y_rel)
+        CY_anchor = (3.5*Y_rel)
+        # Horizontal step size for the children nodes
+        step = list(range(1, X_div, 2))
+        step = [x+0.5 for x in step]
+        sub_rank = self.SUB_RANKS[self.current_rank]
+
+        self.draw_node(self.top_node, self.COLORS[self.current_rank], X_rel, Y_rel,
+            PX_anchor, PY_anchor)
+        if self.top_node != "Wortel":
+            self.canvas.create_line(PX_anchor, 0, PX_anchor, Y_rel, width=2)
+        self.canvas.tag_bind(self.top_node, '<Button-1>', self.explore)
+        for i in range(len(self.bottom_nodes)):
+            self.draw_node(self.bottom_nodes[i], self.COLORS[sub_rank],
+                X_rel, Y_rel, (step[i]*X_rel), CY_anchor)
+            self.canvas.create_line((step[i]*X_rel), (3*Y_rel), PX_anchor, (2*Y_rel),
+                width=2)
+            self.canvas.tag_bind(self.bottom_nodes[i], '<Button-1>', self.explore)
+
+class ClassifyWindow(FrameWork):
     def __init__(self, master, controller):
-        self.user_answer = []
-        self.real_answer = []
+        FrameWork.__init__(self, master, controller)
+
+class QuizWindow(FrameWork):
+    def __init__(self, master, controller):
+        FrameWork.__init__(self, master, controller)
+
+class CorrectWindow(FrameWork):
+    def __init__(self, master, controller):
+        FrameWork.__init__(self, master, controller)
+
+class InterWindow(FrameWork):
+    def __init__(self, master, controller):
+        FrameWork.__init__(self, master, controller)
+
+class CreateWindow(FrameWork):
+    def __init__(self, master, controller):
+        FrameWork.__init__(self, master, controller)
+
+class InferWindow(FrameWork):
+    def __init__(self, master, controller):
+        FrameWork.__init__(self, master, controller)
+
+class DifferWindow(FrameWork):
+    def __init__(self, master, controller):
+        FrameWork.__init__(self, master, controller)
 
 
 # Herbruikbaar canvas waar taxonomische bomen in getekend kunnen worden.
