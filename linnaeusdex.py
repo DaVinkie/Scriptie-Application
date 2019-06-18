@@ -120,49 +120,29 @@ class MainWindow(tk.Frame):
     def __init__(self, master, controller):
         tk.Frame.__init__(self, master)
 
-        # QuestionWindow vervangen door correcte waarde
         pages = [
-            ("Beantwoord",  "DarkSlategray2",   QuestionWindow),
-            ("Vergelijk",   "khaki2",           CompareWindow),
-            ("Ontdek",      "light pink",       ExploreWindow),
             ("Classificeer","DarkSlategray2",   ClassifyWindow),
-            ("Quiz",        "khaki2",           QuizWindow),
+            ("Vergelijk",   "khaki2",           CompareWindow),
             ("Verbeter",    "firebrick1",       CorrectWindow),
-            ("Interpreteer","khaki2",           InterWindow),
-            ("Voorspel",    "light pink",       InferWindow),
+            ("Beantwoord",  "DarkSlategray2",   QuestionWindow),
+            ("Quiz",        "khaki2",           QuizWindow),
+            ("Ontdek",      "light pink",       ExploreWindow),
             ("Groepeer",    "firebrick1",       DifferWindow),
-            ("Maak",        "DarkSlategray2",   CreateWindow)
+            ("Maak",        "DarkSlategray2",   CreateWindow),
+            ("Interpreteer","khaki2",           InterWindow),
+            ("Voorspel",    "light pink",       InferWindow)
         ]
 
-        frames = []
-        for i in range(len(pages)): # make variable
-            f = tk.Frame(self, bd=1, relief="solid")
-            f.grid_rowconfigure(0, weight=1)
-            f.grid_columnconfigure(0, weight=1)
-            # f.pack_propagate(False)
-            frames.append(f)
-
-        buttons = []
-        for i in range(len(frames)):
-            buttons.append(tk.Button(frames[i], width=10, height=10, text=pages[i][0], bg=pages[i][1],
-                            command = lambda i=i: controller.show_frame(pages[i][2])))
-            # buttons[i].pack(expand=True, fill=tk.BOTH)
-            buttons[i].grid(row=0, column=0, sticky="nsew")
-
-        # Misschien in een loop.
         for i in range(3):
             self.grid_rowconfigure(i, weight=1)
             self.grid_columnconfigure(i, weight=1)
-
-        frames[0].grid(row=0, column=0, padx=5, pady=5)
-        frames[1].grid(row=0, column=1, padx=5, pady=5)
-        frames[2].grid(row=0, column=2, padx=5, pady=5)
-        frames[3].grid(row=1, column=0, padx=5, pady=5)
-        frames[4].grid(row=1, column=1, padx=5, pady=5)
-        frames[5].grid(row=1, column=2, padx=5, pady=5)
-        frames[6].grid(row=2, column=0, padx=5, pady=5)
-        frames[7].grid(row=2, column=1, padx=5, pady=5)
-        frames[8].grid(row=2, column=2, padx=5, pady=5)
+            for j in range(3):
+                k = (i*3) + j
+                f = tk.Frame(self)
+                b = tk.Button(f, text=pages[k][0], bg=pages[k][1],
+                    command=lambda k=k: controller.show_frame(pages[k][2]))
+                b.pack(expand=True, fill="both")
+                f.grid(row=i, column=j, padx=5, pady=5, sticky="nsew")
 
     def start(self):
         print("Start ", self)
@@ -280,6 +260,12 @@ class FrameWork(tk.Frame):
         children = [self.get_name_frame(dutch, latin) for dutch, latin in
                     zip(sub_rows['Naam_NL'], sub_rows['Naam_LA'])]
         return children
+
+    def start(self):
+        print("Start: ", self)
+
+    def clean_page(self):
+        print("Clean: ", self)
 
 # Voor het classificatie gedeelte
 class QuestionWindow(tk.Frame):
@@ -409,15 +395,13 @@ class CompareWindow(FrameWork):
         self.turn = 0
         self.correct = 0
         self.wrong_answer = []
-        self.ricardo    = tk.PhotoImage(file="ricardo.png")
-        self.siem       = tk.PhotoImage(file="siem.png")
+        # self.ricardo    = tk.PhotoImage(file="ricardo.png")
+        # self.siem       = tk.PhotoImage(file="siem.png")
 
         self.question = tk.Label(self, font=used_font,
                                 text="Welke van de twee bomen is de juiste?")
         self.left = tk.Canvas(self, bd=1, bg="white", relief="solid")
         self.right = tk.Canvas(self, bd=1, bg="white", relief="solid")
-        # self.testbutton = tk.Button(self, text="TEST", command=self.get_random)
-        # self.testbutton2 = tk.Button(self, text="TEST", command=self.get_random)
 
         # self.grid_rowconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -427,7 +411,6 @@ class CompareWindow(FrameWork):
         self.question.grid(row=0, columnspan=2, sticky="nsew")
         self.left.grid(row=1, column=0, sticky="nsew")
         self.right.grid(row=1, column=1, sticky="nsew")
-        # self.testbutton.grid(row=2)
 
         self.left.bind("<Button-1>", self.take_turn)
         self.right.bind("<Button-1>", self.take_turn)
@@ -721,10 +704,6 @@ class TreeDisplay(tk.Canvas):
         self.node_list = []
         self.answer_list = []
         self.canvas.delete("all") # iets anders dan all
-
-NODE_WIDTH = 50
-NODE_HEIGHT = 30
-BRANCH_LENGTH = 25
 
 ranklist = ["Soort", "Familie", "Orde", "Klasse", "Stam", "Rijk"]
 dataframes = {}
