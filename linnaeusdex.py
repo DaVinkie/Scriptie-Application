@@ -38,10 +38,10 @@ class AppWindow(tk.Tk):
         # pages = ["Classificeer", "Vergelijk", "Modelleer", "Verbeter"]
         self.frames = {}
         # in een pages loop
-        main_frame      = MainWindow(main_window, self)
-        question_frame  = QuestionWindow(main_window, self)
-        compare_frame   = CompareWindow(main_window, self)
-        explore_frame   = ExploreWindow(main_window, self)
+        main_frame      = MainWindow(main_window, self) # menu
+        question_frame  = QuestionWindow(main_window, self) # quizmodel
+        compare_frame   = CompareWindow(main_window, self) # vergelijk
+        explore_frame   = ExploreWindow(main_window, self) # ontdek db
 
         self.frames[MainWindow]     = main_frame
         self.frames[QuestionWindow] = question_frame
@@ -49,30 +49,33 @@ class AppWindow(tk.Tk):
         self.frames[ExploreWindow]  = explore_frame
 
         # unfinished
-        classify_frame  = ClassifyWindow(main_window, self)
-        correct_frame   = CorrectWindow(main_window, self)
-        quiz_frame      = QuizWindow(main_window, self)
-        inter_frame     = InterWindow(main_window, self)
-        infer_frame     = InferWindow(main_window, self)
-        differ_frame    = DifferWindow(main_window, self)
+        correct_frame   = CorrectWindow(main_window, self) # corrigeer!
+        classify_frame  = ClassifyWindow(main_window, self) # classificeer!
+        infer_frame     = InferWindow(main_window, self) # groepeer op basis van iets
+        quiz_frame      = QuizWindow(main_window, self) # ook quiz?
+        inter_frame     = InterWindow(main_window, self) # modelleer op basis van tekst
+        differ_frame    = DifferWindow(main_window, self) # geef relevantie aan
+        create_frame    = CreateWindow(main_window, self) # modelleer
 
-        self.frames[ClassifyWindow] = classify_frame
         self.frames[CorrectWindow]  = correct_frame
+        self.frames[ClassifyWindow] = classify_frame
+        self.frames[InferWindow]    = infer_frame
         self.frames[QuizWindow]     = quiz_frame
         self.frames[InterWindow]    = inter_frame
-        self.frames[InferWindow]    = infer_frame
         self.frames[DifferWindow]   = differ_frame
+        self.frames[CreateWindow]   = create_frame
 
         main_frame.grid(row=0, column=0, sticky="nsew")
         question_frame.grid(row=0, column=0, sticky="nsew")
         compare_frame.grid(row=0, column=0, sticky="nsew")
         explore_frame.grid(row=0, column=0, sticky="nsew")
-        classify_frame.grid(row=0, column=0, sticky="nsew")
         correct_frame.grid(row=0, column=0, sticky="nsew")
+        classify_frame.grid(row=0, column=0, sticky="nsew")
+        infer_frame.grid(row=0, column=0, sticky="nsew")
         quiz_frame.grid(row=0, column=0, sticky="nsew")
         inter_frame.grid(row=0, column=0, sticky="nsew")
-        infer_frame.grid(row=0, column=0, sticky="nsew")
         differ_frame.grid(row=0, column=0, sticky="nsew")
+        create_frame.grid(row=0, column=0, sticky="nsew")
 
 
         self.show_frame(MainWindow)
@@ -125,12 +128,12 @@ class MainWindow(tk.Frame):
             ("Vergelijk",   "khaki2",           CompareWindow),
             ("Verbeter",    "firebrick1",       CorrectWindow),
             ("Beantwoord",  "DarkSlategray2",   QuestionWindow),
-            ("Quiz",        "khaki2",           QuizWindow),
             ("Ontdek",      "light pink",       ExploreWindow),
-            ("Groepeer",    "firebrick1",       DifferWindow),
+            # ("Quiz",        "khaki2",           QuizWindow),
+            ("Groepeer",    "firebrick1",       InferWindow),
             ("Maak",        "DarkSlategray2",   CreateWindow),
             ("Interpreteer","khaki2",           InterWindow),
-            ("Voorspel",    "light pink",       InferWindow)
+            ("Relevantie",  "light pink",       DifferWindow)
         ]
 
         for i in range(3):
@@ -398,17 +401,17 @@ class CompareWindow(FrameWork):
         # self.ricardo    = tk.PhotoImage(file="ricardo.png")
         # self.siem       = tk.PhotoImage(file="siem.png")
 
-        self.question = tk.Label(self, font=used_font,
+        self.description = tk.Label(self, font=used_font,
                                 text="Welke van de twee bomen is de juiste?")
         self.left = tk.Canvas(self, bd=1, bg="white", relief="solid")
         self.right = tk.Canvas(self, bd=1, bg="white", relief="solid")
 
-        # self.grid_rowconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=9)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
-        self.question.grid(row=0, columnspan=2, sticky="nsew")
+        self.description.grid(row=0, columnspan=2, padx=5, pady=5, sticky="nsew")
         self.left.grid(row=1, column=0, sticky="nsew")
         self.right.grid(row=1, column=1, sticky="nsew")
 
@@ -528,11 +531,12 @@ class ExploreWindow(FrameWork):
             text="Klik op een dochter om die tak te ontdekken, klik op de wortel om een stap terug te doen.")
         self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
 
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=9)
         self.grid_columnconfigure(0, weight=1)
 
-        self.description.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-        self.canvas.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
+        self.description.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.canvas.grid(row=1, column=0, sticky="nsew")
 
     def start(self):
         self.draw_start()
@@ -606,33 +610,143 @@ class ExploreWindow(FrameWork):
                 width=2)
             self.canvas.tag_bind(self.bottom_nodes[i], '<Button-1>', self.explore)
 
+class CorrectWindow(FrameWork):
+    def __init__(self, master, controller):
+        FrameWork.__init__(self, master, controller)
+
+        self.description= tk.Label(self, font=used_font, text="   Verbeteren   ")
+        self.canvas     = tk.Canvas(self, bd=1, bg="white", relief="solid")
+        self.question   = tk.Message(self, bd=1, bg="white", relief="solid",
+                            text="Geef de onjuiste taxon aan.")
+        self.sb         = tk.Button(self, text="START",
+                            command=self.start())
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=9)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+
+        self.description.grid(row=0, column=0, padx=5, pady=5, columnspan=2, sticky="nsew")
+        self.canvas.grid(row=1, column=0, rowspan=2, sticky="nsew")
+        self.question.grid(row=1, column=1, sticky="nsew")
+        self.sb.grid(row=2, column=1)
+
+    def draw_node(self, canvas, name, color, anchor, node_height, num):
+        # print(name, color, anchor, node_height, num)
+        node_width  = (used_font.measure(text=name) + 10)/2
+        pos = list(range(1, 12, 2))
+        canvas.create_rectangle((anchor-node_width), (node_height*pos[num]), (anchor+node_width),
+                                (node_height*(pos[num]+1)), fill=color)
+        canvas.create_text(anchor, (node_height*(pos[num])+(node_height/2)), text=name, font=used_font)
+
+    def draw_branch(self, canvas, branch):
+        colors = ['#99ccff', '#b3ff66', '#ffd699', '#00b3b3', '#ff9999', '#ffff99']
+        anchor      = (canvas.winfo_width()-2)/2
+        node_height = (canvas.winfo_height()-2)/13
+        print(canvas.winfo_width(), anchor)
+
+        for i in range(len(branch)):
+            self.draw_node(canvas, branch[i], colors[i], anchor, node_height, i)
+        self.connect_nodes(canvas)
+
+    def connect_nodes(self, canvas):
+        anchor = (canvas.winfo_width()-2)/2
+        con_height = (canvas.winfo_height()-2)/13
+        pos = list(range(2, 11, 2))
+        for i in pos:
+            canvas.create_line(anchor, (con_height*i), anchor, (con_height*(i+1)))
+
+    def start(self):
+        self.canvas.delete("all")
+        self.draw_branch(self.canvas, ["Daniel", "is", "me", "toch", "een", "geil ventje"])
+        print(self.canvas.winfo_height())
+
 class ClassifyWindow(FrameWork):
     def __init__(self, master, controller):
         FrameWork.__init__(self, master, controller)
+        self.current_rank = "Soort"
+        self.super_rank = self.SUPER_RANKS[self.current_rank]
+        self.labeltext = "Geef aan tot welke "+self.super_rank+" deze "+self.current_rank+" hoort."
+
+        self.description = tk.Label(self, font=used_font, text=self.labeltext)
+        self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=9)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.description.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.canvas.grid(row=1, column=0, sticky="nsew")
 
 class QuizWindow(FrameWork):
     def __init__(self, master, controller):
         FrameWork.__init__(self, master, controller)
 
-class CorrectWindow(FrameWork):
-    def __init__(self, master, controller):
-        FrameWork.__init__(self, master, controller)
+        self.description = tk.Label(self, font=used_font, text="description")
+        self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=9)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.description.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.canvas.grid(row=1, column=0, sticky="nsew")
 
 class InterWindow(FrameWork):
     def __init__(self, master, controller):
         FrameWork.__init__(self, master, controller)
 
+        self.description = tk.Label(self, font=used_font, text="description")
+        self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=9)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.description.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.canvas.grid(row=1, column=0, sticky="nsew")
+
 class CreateWindow(FrameWork):
     def __init__(self, master, controller):
         FrameWork.__init__(self, master, controller)
+
+        self.description = tk.Label(self, font=used_font, text="description")
+        self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=9)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.description.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.canvas.grid(row=1, column=0, sticky="nsew")
 
 class InferWindow(FrameWork):
     def __init__(self, master, controller):
         FrameWork.__init__(self, master, controller)
 
+        self.description = tk.Label(self, font=used_font, text="description")
+        self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=9)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.description.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.canvas.grid(row=1, column=0, sticky="nsew")
+
 class DifferWindow(FrameWork):
     def __init__(self, master, controller):
         FrameWork.__init__(self, master, controller)
+
+        self.description = tk.Label(self, font=used_font, text="description")
+        self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=9)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.description.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.canvas.grid(row=1, column=0, sticky="nsew")
 
 
 # Herbruikbaar canvas waar taxonomische bomen in getekend kunnen worden.
