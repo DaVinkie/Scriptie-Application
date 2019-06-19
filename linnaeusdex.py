@@ -575,12 +575,6 @@ class ExploreWindow(FrameWork):
                                     fill=color, tag=text)
         self.canvas.create_text(X_anchor, Y_anchor, text=text, tag=text)
 
-    def draw_start(self):
-        self.top_node = "Wortel"
-        self.bottom_nodes = ["Dieren", "Planten", "Schimmels"]
-        self.current_rank = "Start"
-        self.draw_selection()
-
     def draw_selection(self):
         self.canvas.delete("all")
         # Basically the amount of rows and columns except in coordinates
@@ -609,6 +603,12 @@ class ExploreWindow(FrameWork):
             self.canvas.create_line((step[i]*X_rel), (3*Y_rel), PX_anchor, (2*Y_rel),
                 width=2)
             self.canvas.tag_bind(self.bottom_nodes[i], '<Button-1>', self.explore)
+
+    def draw_start(self):
+        self.top_node = "Wortel"
+        self.bottom_nodes = ["Dieren", "Planten", "Schimmels"]
+        self.current_rank = "Start"
+        self.draw_selection()
 
 class CorrectWindow(FrameWork):
     def __init__(self, master, controller):
@@ -664,9 +664,13 @@ class CorrectWindow(FrameWork):
 class ClassifyWindow(FrameWork):
     def __init__(self, master, controller):
         FrameWork.__init__(self, master, controller)
-        self.current_rank = "Soort"
-        self.super_rank = self.SUPER_RANKS[self.current_rank]
-        self.labeltext = "Geef aan tot welke "+self.super_rank+" deze "+self.current_rank+" hoort."
+        self.turn = 0
+        self.bottom_node = None #"Bosmuis"
+        self.top_nodes = []#["Muizen", "Cavia's", "Mensen"]
+
+        self.current_rank = None #"Soort"
+        self.super_rank = None #self.SUPER_RANKS[self.current_rank]
+        self.labeltext = None #"Geef aan tot welke "+self.super_rank+" deze "+self.current_rank+" hoort."
 
         self.description = tk.Label(self, font=used_font, text=self.labeltext)
         self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
@@ -677,6 +681,97 @@ class ClassifyWindow(FrameWork):
 
         self.description.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
         self.canvas.grid(row=1, column=0, sticky="nsew")
+
+    def draw_node(self, name, color, width, height, X_anchor, Y_anchor):
+        self.canvas.create_rectangle((X_anchor-(width/2)), (Y_anchor-(height/2)),
+                                    (X_anchor+(width/2)), (Y_anchor+(height/2)),
+                                    fill=color, tag=name)
+        self.canvas.create_text(X_anchor, Y_anchor, text=name, tag=name)
+
+    def update_label(self):
+        self.labeltext = "Geef aan tot welke "+self.super_rank+" deze "+self.current_rank+" hoort."
+
+    def draw_selection(self):
+        self.canvas.delete("all")
+        # Basically the amount of rows and columns except in coordinates
+        X_div = (len(self.top_nodes)*2)+1
+        Y_div = 5
+        # Size of the nodes
+        X_rel = self.canvas.winfo_width() / X_div
+        Y_rel = self.canvas.winfo_height() / Y_div
+        # Anchor points for parent and child nodes
+        PY_anchor = (1.5*Y_rel)
+        CX_anchor = self.canvas.winfo_width() / 2
+        CY_anchor = (3.5*Y_rel)
+        # Horizontal step size for the children nodes
+        step = list(range(1, X_div, 2))
+        step = [x+0.5 for x in step]
+        top_rank = self.SUPER_RANKS[self.current_rank]
+        self.draw_node(self.bottom_node, self.COLORS[self.current_rank], X_rel, Y_rel,
+            CX_anchor, CY_anchor)
+        # if self.top_node != "Wortel":
+            # self.canvas.create_line(PX_anchor, 0, PX_anchor, Y_rel, width=2)
+        self.canvas.tag_bind(self.bottom_node, '<Button-1>', self.classify)
+        for i in range(len(self.top_nodes)):
+            self.draw_node(self.top_nodes[i], self.COLORS[top_rank],
+                X_rel, Y_rel, (step[i]*X_rel), PY_anchor)
+            # self.canvas.create_line((step[i]*X_rel), (3*Y_rel), PX_anchor, (2*Y_rel),
+                # width=2)
+            self.canvas.tag_bind(self.top_nodes[i], '<Button-1>', self.classify)
+
+    def draw_start(self):
+        self.current_rank = ranklist[0]
+        self.super_rank = self.SUPER_RANKS[self.current_rank]
+        self.bottom_node = self.get_random()
+        self.top_nodes = self.get_selection()
+        self.update_label()
+        self.draw_selection()
+
+    def get_selection(self, n=2): # Amount of answers = n+1
+        self.real_answer = self.get_parent(self.bottom_node, self.current_rank)
+        sel = [self.real_answer]
+        for i in range(n):
+            r = self.get_random(self.super_rank)
+            while (r == self.real_answer or r in sel): # counter measurement for duplicates
+                r = self.get_random(self.super_rank)
+            sel.append(r)
+        shuffle(sel)
+        return sel
+
+    def classify(self, event):
+        selected = self.canvas.find_closest(event.x, event.y)
+        name = self.canvas.gettags(selected)[0]
+
+        if name == self.real_answer:
+            self.canvas.itemconfig(selected, fill="green")
+            if self.super_rank == ranklist[-1]:
+                self.show_result()
+            else:
+                self.update_selection()
+        elif name != self.bottom_node:
+            self.canvas.itemconfig(selected, fill="red")
+            self.turn += 1
+            self.top_nodes.remove(name)
+        self.after(700, self.draw_selection)
+
+    def update_selection(self):
+        self.current_rank = self.SUPER_RANKS[self.current_rank]
+        self.super_rank = self.SUPER_RANKS[self.super_rank]
+        self.bottom_node = self.real_answer
+        self.top_nodes = self.get_selection()
+
+    def show_result(self):
+        window = tk.Toplevel()
+        r = "Je hebt een "+str(round((6/(6+self.turn))*10, 2))+" van de 10 gescoord."
+        result = tk.Message(window, text=r)
+        button = tk.Button(window, text="cancel", command=self.draw_start)
+        button2 = tk.Button(window, text="quit", command=window.destroy)
+        result.pack(padx=5, pady=5)
+        button.pack()
+        button2.pack()
+
+    def start(self):
+        self.draw_start()
 
 class QuizWindow(FrameWork):
     def __init__(self, master, controller):
