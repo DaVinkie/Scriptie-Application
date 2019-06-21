@@ -6,3 +6,33 @@ functie die vragen stelt - loopt over ranklist
 beginnen met startvraag
     user input in lijst
     per rank nieuwe vraag
+
+
+1. Corrigeer model
+    [X] Randomize een antwoord
+    [X] Geef aan welk taxon actief is
+    [X] Skip enter als string leeg is
+    [X] Controlleer of antwoord goed is
+    [X] Laat goede antwoord zien
+    [X] Geef kans op correctie
+    [X] punt voor fout aangeven, punt voor juiste correctie
+    [X] Loop door vragen heen
+
+2. Quiz model
+    3 soorten vragen
+        multiple choice
+        open vraag
+
+    loopje door de soorten vragen heen
+
+3. Infer model
+    voeg eigenschappen toe aan db
+    pak dingen die een eigenschap hebben
+    plaats nodes in juiste groep
+    controlleer link
+
+    maak nodes
+    haal woord uit nodes
+    match deze woorden met de get parent functie
+    teken lijnen / versleep naar bepaald canvas
+    teken canvassen voor elke groep (variabel)

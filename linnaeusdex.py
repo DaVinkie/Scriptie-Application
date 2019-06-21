@@ -437,9 +437,11 @@ class CompareWindow(FrameWork):
         self.fake_answer = self.real_answer[:]
 
         r = randint(0, len(ranklist)-1)
-        reverse = ranklist[::-1]
-        self.fake_answer[r] = self.get_random(reverse[r])
-        # print(self.real_answer, self.fake_answer)
+        reverse_ranks = ranklist[::-1]
+        fake = self.get_random(reverse_ranks[r])
+        while (fake == self.real_answer[r]): # safety net for generating the same answer
+            fake = self.get_random(reverse_ranks[r])
+        self.fake_answer[r] = fake
 
     # Clears visual feedback and shuffles the options in place.
     def shuffle_answers(self):
@@ -494,12 +496,11 @@ class CompareWindow(FrameWork):
         canvas.create_text(anchor, (node_height*(pos[num])+(node_height/2)), text=name, font=used_font)
 
     def draw_branch(self, canvas, branch):
-        colors = ['#99ccff', '#b3ff66', '#ffd699', '#00b3b3', '#ff9999', '#ffff99']
         anchor      = (canvas.winfo_width()-2)/2
         node_height = (canvas.winfo_height()-2)/13
 
         for i in range(len(branch)):
-            self.draw_node(canvas, branch[i], colors[i], anchor, node_height, i)
+            self.draw_node(canvas, branch[i], self.COLORS[ranklist[i]], anchor, node_height, i)
         self.connect_nodes(canvas)
 
     def connect_nodes(self, canvas):
@@ -613,40 +614,85 @@ class ExploreWindow(FrameWork):
 class CorrectWindow(FrameWork):
     def __init__(self, master, controller):
         FrameWork.__init__(self, master, controller)
+        self.score = 0
+        self.turn = 0
+        self.user_ans = None
+        self.curr_ans = None
+        self.replaced = None
+        self.replaced_i = None
+        self.selected_i = None
+        self.fake_answer = []
+        self.start_q = "Geef de onjuiste taxon aan."
 
         self.description= tk.Label(self, font=used_font, text="   Verbeteren   ")
-        self.canvas     = tk.Canvas(self, bd=1, bg="white", relief="solid")
-        self.question   = tk.Message(self, bd=1, bg="white", relief="solid",
-                            text="Geef de onjuiste taxon aan.")
-        self.sb         = tk.Button(self, text="START",
-                            command=self.start())
+
+        self.left = tk.Frame(self)
+        self.canvas     = tk.Canvas(self.left, bd=1, bg="white", relief="solid")
+        self.selection  = self.canvas.create_rectangle(0, 0, 100, 100, outline="red",
+                            fill="blue")
+
+        self.right_q = tk.Frame(self)
+        self.question   = tk.Message(self.right_q, bd=1, relief="solid", anchor="n",
+                            aspect=300, font=used_font, #bg="white",
+                            text=self.start_q)
+        self.entry      = tk.Entry(self.right_q, bd=1, relief="solid", font=("Arial 16"))
+        self.sb         = tk.Button(self.right_q, text="SUBMIT",
+                            command=self.ask_confirmation)
+        self.can         = tk.Button(self.right_q, text="Terug",
+                            command=self.cancel)
+        self.cb         = tk.Button(self.right_q, text="Bevestig",
+                            command=self.confirm_selection)
+        self.entry.bind('<Return>', self.ask_confirmation)
+
+        self.right_a = tk.Frame(self)
+        self.ans_canvas = tk.Canvas(self.right_a, bd=1, bg="white", relief="solid")
+        self.next   = tk.Button(self.right_a, text="Volgende",
+                        command=self.start)
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=9)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
+        self.right_q.grid_rowconfigure(0, weight=9)
+        self.right_q.grid_rowconfigure(1, weight=1)
+        self.right_q.grid_columnconfigure(0, weight=1)
+        self.right_q.grid_columnconfigure(1, weight=1)
+
+        self.right_a.grid_rowconfigure(0, weight=1)
+        self.right_a.grid_columnconfigure(0, weight=1)
+        self.right_a.grid_columnconfigure(1, weight=9)
+
         self.description.grid(row=0, column=0, padx=5, pady=5, columnspan=2, sticky="nsew")
-        self.canvas.grid(row=1, column=0, rowspan=2, sticky="nsew")
-        self.question.grid(row=1, column=1, sticky="nsew")
-        self.sb.grid(row=2, column=1)
+
+        self.left.grid(row=1, column=0, sticky="nsew")
+        self.canvas.pack(expand=True, fill="both")
+
+
+        self.right_a.grid(row=1, column=1, sticky="nsew")
+        self.next.grid(row=0, column=0, sticky="ew")
+        self.ans_canvas.grid(row=0, column=1, sticky="nsew")
+
+        self.right_q.grid(row=1, column=1, sticky="nsew")
+        self.question.grid(row=0, column=0, columnspan=2, sticky="nsew")
+        self.entry.grid(row=1, column=0, sticky="nsew")
+        self.sb.grid(row=1, column=1, sticky="nsew")
+        self.right_q.lift()
 
     def draw_node(self, canvas, name, color, anchor, node_height, num):
-        # print(name, color, anchor, node_height, num)
         node_width  = (used_font.measure(text=name) + 10)/2
         pos = list(range(1, 12, 2))
         canvas.create_rectangle((anchor-node_width), (node_height*pos[num]), (anchor+node_width),
-                                (node_height*(pos[num]+1)), fill=color)
-        canvas.create_text(anchor, (node_height*(pos[num])+(node_height/2)), text=name, font=used_font)
+                                (node_height*(pos[num]+1)), fill=color, tag=(name, name+'box', str(num)))
+        canvas.create_text(anchor, (node_height*(pos[num])+(node_height/2)),
+                            text=name, font=used_font, tag=(name, name+'txt', str(num)))
 
     def draw_branch(self, canvas, branch):
-        colors = ['#99ccff', '#b3ff66', '#ffd699', '#00b3b3', '#ff9999', '#ffff99']
         anchor      = (canvas.winfo_width()-2)/2
         node_height = (canvas.winfo_height()-2)/13
-        print(canvas.winfo_width(), anchor)
-
         for i in range(len(branch)):
-            self.draw_node(canvas, branch[i], colors[i], anchor, node_height, i)
+            self.draw_node(canvas, branch[i], self.COLORS[ranklist[i]], anchor, node_height, i)
+            self.canvas.tag_bind(branch[i], '<Button-1>', self.show_selection)
         self.connect_nodes(canvas)
 
     def connect_nodes(self, canvas):
@@ -656,10 +702,111 @@ class CorrectWindow(FrameWork):
         for i in pos:
             canvas.create_line(anchor, (con_height*i), anchor, (con_height*(i+1)))
 
-    def start(self):
+    def create_option(self):
+        self.real_answer = self.get_branch(self.get_random())
+        self.fake_answer = self.real_answer[:]
+
+        r = randint(0, len(ranklist)-1)
+        reverse_ranks = ranklist[::-1]
+
+        fake = self.get_random(reverse_ranks[r])
+        while (fake == self.real_answer[r]): # safety net for generating the same answer
+            fake = self.get_random(reverse_ranks[r])
+        self.replaced_i = r
+        self.replaced = self.real_answer[r]
+        self.fake_answer[r] = fake
+
+    def ask_question(self):
+        q = "Wat zou " + self.curr_ans + " moeten zijn?"
+        self.question.configure(text=q)
+
+    def show_selection(self, event):
+        selected = self.canvas.find_closest(event.x, event.y)
+        self.curr_ans = self.canvas.gettags(selected)[0]
+        box = self.canvas.find_withtag(self.curr_ans+'box')[0]
+        self.canvas.delete(self.selection)
+        x0, y0, x1, y1 = self.canvas.bbox(box)
+        self.selection  = self.canvas.create_rectangle(x0-5, y0-5, x1+5, y1+5,
+                            outline="red", width=2)
+        self.ask_question()
+
+    def show_answer(self):
+        self.right_a.lift()
+        self.update_idletasks()
+        self.draw_branch(self.ans_canvas, self.real_answer)
+        self.show_correct()
+
+    def show_correct(self):
+        box = self.ans_canvas.find_withtag(self.replaced)[0]
+        x0, y0, x1, y1 = self.ans_canvas.bbox(box)
+        self.ans_canvas.create_rectangle(x0-5, y0-5, x1+5, y1+5, outline="green",
+            width=2)
+
+    def ask_confirmation(self, event=None):
+        self.user_ans = self.entry.get()
+        if (self.user_ans == ""): # Catches random return presses and empty suggestions
+            return
+        self.question.config(
+        text=self.curr_ans + " zou " + self.user_ans + " moeten zijn?")
+        self.cb.grid(row=1, column=0, sticky="nsew")
+        self.can.grid(row=1, column=1, sticky="nsew")
+
+    def cancel(self):
+        self.cb.grid_forget()
+        self.can.grid_forget()
+
+    def confirm_selection(self, event=None):
+        self.cb.grid_forget()
+        self.can.grid_forget()
+        self.entry.delete(0, "end")
+        node = self.canvas.find_withtag(self.curr_ans+'txt')[0]
+        self.selected_i = int(self.canvas.gettags(node)[2])
+        self.canvas.itemconfig(node, text=self.user_ans)
+
+        self.calculate_score()
+        self.show_answer()
+
+    def calculate_score(self):
+        print(self.turn)
+        self.turn += 1
+        if self.user_ans == self.replaced:
+            self.score += 1
+        if self.selected_i == self.replaced_i:
+            self.score += 1
+        if self.turn == 10:
+            self.show_result()
+
+    def show_result(self):
+        window = tk.Toplevel(self, width=160, height=90)
+        r = "Je hebt een "+str(round((self.score/2), 2))+" van de 10 gescoord."
+        result = tk.Message(window, text=r, font=used_font, aspect=300)
+        button = tk.Button(window, text="Probeer opnieuw",
+                    command = lambda: self.start(window))
+        result.pack(padx=5, pady=5, expand=True, fill="both")
+        button.pack()
+        window.grab_set()
+
+
+    def start(self, window=None):
+        if window:
+            window.destroy()
+        self.question.config(text = self.start_q)
+        self.right_a.lower()
         self.canvas.delete("all")
-        self.draw_branch(self.canvas, ["Daniel", "is", "me", "toch", "een", "geil ventje"])
-        print(self.canvas.winfo_height())
+        self.ans_canvas.delete("all")
+        self.create_option()
+        self.draw_branch(self.canvas, self.fake_answer)
+
+    def clean_page(self):
+        self.score = 0
+        self.turn = 0
+        self.user_ans = None
+        self.curr_ans = None
+        self.replaced = None
+        self.replaced_i = None
+        self.selected_i = None
+        self.fake_answer = []
+        self.start()
 
 class ClassifyWindow(FrameWork):
     def __init__(self, master, controller):
@@ -690,8 +837,10 @@ class ClassifyWindow(FrameWork):
 
     def update_label(self):
         self.labeltext = "Geef aan tot welke "+self.super_rank+" deze "+self.current_rank+" hoort."
+        self.description.config(text=self.labeltext)
 
     def draw_selection(self):
+        self.update_label()
         self.canvas.delete("all")
         # Basically the amount of rows and columns except in coordinates
         X_div = (len(self.top_nodes)*2)+1
@@ -724,7 +873,6 @@ class ClassifyWindow(FrameWork):
         self.super_rank = self.SUPER_RANKS[self.current_rank]
         self.bottom_node = self.get_random()
         self.top_nodes = self.get_selection()
-        self.update_label()
         self.draw_selection()
 
     def get_selection(self, n=2): # Amount of answers = n+1
@@ -773,6 +921,66 @@ class ClassifyWindow(FrameWork):
     def start(self):
         self.draw_start()
 
+class InferWindow(FrameWork):
+    def __init__(self, master, controller):
+        FrameWork.__init__(self, master, controller)
+        self.debug = True
+        self.groups     = []
+        self.options   = []
+
+        self.description = tk.Label(self, font=used_font, text="description")
+        self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=9)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.description.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.canvas.grid(row=1, column=0, sticky="nsew")
+
+    def get_groups(self, n=3):
+        for i in range(n):
+            rank = ranklist[randint(1, len(ranklist)-1)]
+            self.groups.append((self.get_random(rank), rank))
+
+        if self.debug:
+            print(self.groups)
+
+    def get_options(self, n=2):
+        for group in self.groups:
+            options = self.get_children(group[0], group[1])
+            shuffle(options)
+            if len(options) > 1:
+                for i in range(n):
+                    self.options.append(options[i])
+            elif len(options) == 1:
+                self.options.append(options[0])
+
+        if self.debug:
+            print(self.options)
+
+    def start(self):
+        self.get_groups()
+        self.get_options()
+
+    def clean_page(self):
+        self.groups = []
+        self.options = []
+
+class DifferWindow(FrameWork):
+    def __init__(self, master, controller):
+        FrameWork.__init__(self, master, controller)
+
+        self.description = tk.Label(self, font=used_font, text="description")
+        self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=9)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.description.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.canvas.grid(row=1, column=0, sticky="nsew")
+
 class QuizWindow(FrameWork):
     def __init__(self, master, controller):
         FrameWork.__init__(self, master, controller)
@@ -802,34 +1010,6 @@ class InterWindow(FrameWork):
         self.canvas.grid(row=1, column=0, sticky="nsew")
 
 class CreateWindow(FrameWork):
-    def __init__(self, master, controller):
-        FrameWork.__init__(self, master, controller)
-
-        self.description = tk.Label(self, font=used_font, text="description")
-        self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
-
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=9)
-        self.grid_columnconfigure(0, weight=1)
-
-        self.description.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-        self.canvas.grid(row=1, column=0, sticky="nsew")
-
-class InferWindow(FrameWork):
-    def __init__(self, master, controller):
-        FrameWork.__init__(self, master, controller)
-
-        self.description = tk.Label(self, font=used_font, text="description")
-        self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
-
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=9)
-        self.grid_columnconfigure(0, weight=1)
-
-        self.description.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-        self.canvas.grid(row=1, column=0, sticky="nsew")
-
-class DifferWindow(FrameWork):
     def __init__(self, master, controller):
         FrameWork.__init__(self, master, controller)
 
