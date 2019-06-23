@@ -632,7 +632,7 @@ class CorrectWindow(FrameWork):
                             fill="blue")
 
         self.right_q = tk.Frame(self)
-        self.question   = tk.Message(self.right_q, bd=1, relief="solid", anchor="n",
+        self.question   = tk.Message(self.right_q, bd=1, relief="solid", # anchor="n",
                             aspect=300, font=used_font, #bg="white",
                             text=self.start_q)
         self.entry      = tk.Entry(self.right_q, bd=1, relief="solid", font=("Arial 16"))
@@ -924,34 +924,65 @@ class ClassifyWindow(FrameWork):
 class InferWindow(FrameWork):
     def __init__(self, master, controller):
         FrameWork.__init__(self, master, controller)
-        self.debug = True
-        self.groups     = []
-        self.options   = []
+        self.debug          = True
+        self.copied         = False
+        self.steps          = [1, 1, 1, 1]
+        self.groups         = []
+        self.options        = []
+        self.n_groups       = 3
+        self.n_options      = 2
+        self.group_rank     = None
+        self.option_rank    = None
 
-        self.description = tk.Label(self, font=used_font, text="description")
-        self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
+        self.description    = tk.Label(self, font=used_font,
+                                text="Deel de opties bij de juiste groepen in:")
+        self.group_canvas0  = tk.Canvas(self, bd=1, bg="white", relief="solid")
+        self.group_canvas1  = tk.Canvas(self, bd=1, bg="white", relief="solid")
+        self.group_canvas2  = tk.Canvas(self, bd=1, bg="white", relief="solid")
+        self.option_canvas  = tk.Canvas(self, bd=1, bg="white", relief="solid")
+        self.confirm        = tk.Button(self, text="Bevestig", font=used_font,
+                                command=self.confirm_selection)
+
+        self.group_canvases = [self.group_canvas0, self.group_canvas1, self.group_canvas2]
+        self.option_canvas.bind('<Button-1>', lambda event, c=self.option_canvas:
+            self.paste_node(event, c))
+        for gc in self.group_canvases:
+            gc.bind('<Button-1>', lambda event, c=gc: self.paste_node(event, c))
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=9)
+        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(3, weight=9)
         self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(2, weight=1)
 
-        self.description.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-        self.canvas.grid(row=1, column=0, sticky="nsew")
+        self.description.grid(row=0, column=0, columnspan=3, padx=5, pady=5, sticky="nsew")
+        self.group_canvas0.grid(row=1, column=0, sticky="nsew")
+        self.group_canvas1.grid(row=1, column=1, sticky="nsew")
+        self.group_canvas2.grid(row=1, column=2, sticky="nsew")
+        self.confirm.grid(row=2, columnspan=3, sticky="nsew")
+        self.option_canvas.grid(row=3, column=0, columnspan=3, sticky="nsew")
 
-    def get_groups(self, n=3):
-        for i in range(n):
-            rank = ranklist[randint(1, len(ranklist)-1)]
-            self.groups.append((self.get_random(rank), rank))
+    # Get the given amount of groups the user has to recognize
+    def get_groups(self):
+        self.group_rank = ranklist[randint(1, len(ranklist)-1)] # get groups from the same rank
+        print(self.group_rank)
+        for i in range(self.n_groups):
+            # rank = ranklist[randint(1, len(ranklist)-1)] # get groups from different ranks
+            self.groups.append((self.get_random(self.group_rank)))
 
         if self.debug:
             print(self.groups)
 
-    def get_options(self, n=2):
+    # Get a given amount of children of the pre specified groups.
+    def get_options(self):
+        self.option_rank = self.SUB_RANKS[self.group_rank]
         for group in self.groups:
-            options = self.get_children(group[0], group[1])
+            options = self.get_children(group, self.group_rank)
             shuffle(options)
             if len(options) > 1:
-                for i in range(n):
+                for i in range(self.n_options):
                     self.options.append(options[i])
             elif len(options) == 1:
                 self.options.append(options[0])
@@ -959,13 +990,92 @@ class InferWindow(FrameWork):
         if self.debug:
             print(self.options)
 
+    # Draw a node on a canvas.
+    def draw_node(self, canvas, name, rank, step):
+        if self.debug:
+            print(self, canvas, name, rank, step)
+        if canvas == self.option_canvas:
+            width       = (used_font.measure(text=name)+20)
+            height      = (used_font.metrics("linespace")+20)
+            stepsize    = canvas.winfo_width()/((len(self.options)*2)+1)
+            X_anchor    = (step*stepsize) + (stepsize/2)
+            Y_anchor    = canvas.winfo_height()/2
+        else:
+            width       = (used_font.measure(text=name)+10)
+            height      = (used_font.metrics("linespace")+10)
+            stepsize    = canvas.winfo_height()/(((self.n_options+1)*2)+1)
+            X_anchor    = canvas.winfo_width()/2
+            Y_anchor    = (step*height) + (height/2)
+
+        canvas.create_rectangle((X_anchor-(width/2)), (Y_anchor-(height/2)),
+            (X_anchor+(width/2)), (Y_anchor+(height/2)), fill=self.COLORS[rank],
+            tag=name)
+        canvas.create_text(X_anchor, Y_anchor, text=name, font=used_font, tag=name)
+        if rank == self.option_rank:
+            canvas.tag_bind(name, '<Button-1>', lambda event, c=canvas: self.copy_node(event, c))
+
+    def copy_node(self, event, canvas):
+        selected    = canvas.find_closest(event.x, event.y)
+        self.copy_canvas = canvas
+        self.copy_name = canvas.gettags(selected)[0]
+        self.copied = True
+        # self.draw_node(canvas, name, self.option_rank, 3)
+        if self.debug:
+            print(selected, self.copy_name)
+
+    def paste_node(self, event, canvas):
+        if canvas == self.copy_canvas:
+            return
+        elif self.copied:
+            self.copy_canvas.delete(self.copy_name)
+
+            if self.copy_canvas == self.option_canvas:
+                i = 3
+            else:
+                i = self.group_canvases.index(self.copy_canvas)
+            self.update_step(self.copy_canvas, i, size=-2)
+
+            if canvas == self.option_canvas:
+                j = 3
+            else:
+                j = self.group_canvases.index(canvas)
+
+            self.draw_node(canvas, self.copy_name, self.option_rank, self.steps[j])
+            self.update_step(canvas, j)
+            self.copied = False
+
+    def update_step(self, canvas, index, size=2):
+        # print(self.group_canvases)
+        if self.steps[index] > 1:
+            self.steps[index] += size
+
+    def confirm_selection(self):
+        for gc in self.group_canvases:
+            print(len(gc.find_all()))
+
     def start(self):
         self.get_groups()
         self.get_options()
+        for i in range(len(self.options)):
+            step = (i*2)+1
+            self.draw_node(self.option_canvas, self.options[i], self.option_rank, step)
+        for j in range(len(self.groups)):
+            self.draw_node(self.group_canvases[j], self.groups[j], self.group_rank,
+                self.steps[j])
+            self.steps[j] += 2
 
     def clean_page(self):
-        self.groups = []
-        self.options = []
+        self.groups         = []
+        self.options        = []
+        self.steps          = [1, 1, 1, 1]
+        self.n_groups       = 3
+        self.n_options      = 2
+        self.group_rank     = None
+        self.option_rank    = None
+        self.option_canvas.delete("all")
+        for c in self.group_canvases:
+            c.delete("all")
+        self.start()
 
 class DifferWindow(FrameWork):
     def __init__(self, master, controller):
