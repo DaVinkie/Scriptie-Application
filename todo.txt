@@ -23,9 +23,17 @@ beginnen met startvraag
         multiple choice
         open vraag
 
+        [ ] layout van quiz (boom tekenen?)
+        [ ] functie voor soort vraag maken
+        [ ] template vragen voor super, sub en eigenschap
+        [ ] multiple choice template
+        [ ] functie die over dit soort vragen rouleert
+        [ ] loop door vragen heen
+
+
     loopje door de soorten vragen heen
 
-3. Infer model
+3. Infer model X
     voeg eigenschappen toe aan db
     pak dingen die een eigenschap hebben
     plaats nodes in juiste groep
@@ -36,3 +44,10 @@ beginnen met startvraag
     match deze woorden met de get parent functie
     teken lijnen / versleep naar bepaald canvas
     teken canvassen voor elke groep (variabel)
+
+[ ] database fixen
+[X] bugfixen met tags van twee woorden
+    [X] bugfix verwijder /xa0 van strings
+[ ] programma wijd lowercase gebruiken
+[ ] eigenschappen toevoegen
+[ ] lijnen tekenen bij classify?

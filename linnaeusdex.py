@@ -127,9 +127,9 @@ class MainWindow(tk.Frame):
             ("Classificeer","DarkSlategray2",   ClassifyWindow),
             ("Vergelijk",   "khaki2",           CompareWindow),
             ("Verbeter",    "firebrick1",       CorrectWindow),
-            ("Beantwoord",  "DarkSlategray2",   QuestionWindow),
+            # ("Beantwoord",  "DarkSlategray2",   QuestionWindow),
+            ("Quiz",        "khaki2",           QuizWindow),
             ("Ontdek",      "light pink",       ExploreWindow),
-            # ("Quiz",        "khaki2",           QuizWindow),
             ("Groepeer",    "firebrick1",       InferWindow),
             ("Maak",        "DarkSlategray2",   CreateWindow),
             ("Interpreteer","khaki2",           InterWindow),
@@ -156,6 +156,8 @@ class FrameWork(tk.Frame):
     def __init__(self, parent, host):
         tk.Frame.__init__(self, parent)
         # main components of every window
+        self.debug  = True
+        self.score  = 0
         self.parent = parent
         self.host   = host
         self.real_answer = []
@@ -230,6 +232,7 @@ class FrameWork(tk.Frame):
 
     # Returns the -Dutch if present- name of the parent taxon of a given name.
     def get_parent(self, name, rank):
+        print("DEBUG: ", name, rank)
         super   = self.SUPER_RANKS[rank]
         df      = dataframes[rank]
         df_s    = dataframes[super]
@@ -264,7 +267,17 @@ class FrameWork(tk.Frame):
                     zip(sub_rows['Naam_NL'], sub_rows['Naam_LA'])]
         return children
 
-    def start(self):
+    def show_result(self):
+        window = tk.Toplevel(self, width=160, height=90)
+        r = "Je hebt een "+str(round((self.score), 2))+" van de 10 gescoord."
+        result = tk.Message(window, text=r, font=used_font, aspect=300)
+        button = tk.Button(window, text="Probeer opnieuw",
+                    command = lambda: self.start(window))
+        result.pack(padx=5, pady=5, expand=True, fill="both")
+        button.pack()
+        window.grab_set()
+
+    def start(self, window=None):
         print("Start: ", self)
 
     def clean_page(self):
@@ -774,22 +787,16 @@ class CorrectWindow(FrameWork):
         if self.selected_i == self.replaced_i:
             self.score += 1
         if self.turn == 10:
-            self.show_result()
+            self.calculate_result()
 
-    def show_result(self):
-        window = tk.Toplevel(self, width=160, height=90)
-        r = "Je hebt een "+str(round((self.score/2), 2))+" van de 10 gescoord."
-        result = tk.Message(window, text=r, font=used_font, aspect=300)
-        button = tk.Button(window, text="Probeer opnieuw",
-                    command = lambda: self.start(window))
-        result.pack(padx=5, pady=5, expand=True, fill="both")
-        button.pack()
-        window.grab_set()
-
+    def calculate_result(self):
+        self.score = round((self.score/2), 2)
+        self.show_result()
 
     def start(self, window=None):
         if window:
             window.destroy()
+            self.clean_page()
         self.question.config(text = self.start_q)
         self.right_a.lower()
         self.canvas.delete("all")
@@ -821,6 +828,7 @@ class ClassifyWindow(FrameWork):
 
         self.description = tk.Label(self, font=used_font, text=self.labeltext)
         self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
+        self.canvas.bind('<Button-2>', self.print_tag)
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=9)
@@ -866,7 +874,13 @@ class ClassifyWindow(FrameWork):
                 X_rel, Y_rel, (step[i]*X_rel), PY_anchor)
             # self.canvas.create_line((step[i]*X_rel), (3*Y_rel), PX_anchor, (2*Y_rel),
                 # width=2)
-            self.canvas.tag_bind(self.top_nodes[i], '<Button-1>', self.classify)
+            tags = self.top_nodes[i].split()
+            for t in tags:
+                self.canvas.tag_bind(t, '<Button-1>', self.classify)
+
+    def print_tag(self, event):
+        sel=self.canvas.find_closest(event.x, event.y)
+        tags = self.canvas.gettags(sel)
 
     def draw_start(self):
         self.current_rank = ranklist[0]
@@ -877,29 +891,35 @@ class ClassifyWindow(FrameWork):
 
     def get_selection(self, n=2): # Amount of answers = n+1
         self.real_answer = self.get_parent(self.bottom_node, self.current_rank)
-        sel = [self.real_answer]
+        sel = [self.real_answer.replace('\xa0', '')]
         for i in range(n):
             r = self.get_random(self.super_rank)
             while (r == self.real_answer or r in sel): # counter measurement for duplicates
-                r = self.get_random(self.super_rank)
+                r = self.get_random(self.super_rank).replace('\xa0', '')
             sel.append(r)
         shuffle(sel)
         return sel
 
     def classify(self, event):
+        print("Turn: ", self.turn)
         selected = self.canvas.find_closest(event.x, event.y)
-        name = self.canvas.gettags(selected)[0]
+        name = self.canvas.gettags(selected)
+        print(selected, name)
 
-        if name == self.real_answer:
+        if name[0] in self.real_answer:
             self.canvas.itemconfig(selected, fill="green")
             if self.super_rank == ranklist[-1]:
-                self.show_result()
+                self.calculate_result()
             else:
                 self.update_selection()
-        elif name != self.bottom_node:
+        elif name[0] not in self.bottom_node:
             self.canvas.itemconfig(selected, fill="red")
             self.turn += 1
-            self.top_nodes.remove(name)
+            if name[0] in self.top_nodes:
+                self.top_nodes.remove(name[0])
+            else:
+                self.top_nodes.remove(" ".join(name[:-1]))
+
         self.after(700, self.draw_selection)
 
     def update_selection(self):
@@ -907,23 +927,27 @@ class ClassifyWindow(FrameWork):
         self.super_rank = self.SUPER_RANKS[self.super_rank]
         self.bottom_node = self.real_answer
         self.top_nodes = self.get_selection()
+        self.top_nodes = [node.replace('\xa0', '') for node in self.top_nodes]
 
-    def show_result(self):
-        window = tk.Toplevel()
-        r = "Je hebt een "+str(round((6/(6+self.turn))*10, 2))+" van de 10 gescoord."
-        result = tk.Message(window, text=r)
-        button = tk.Button(window, text="cancel", command=self.draw_start)
-        button2 = tk.Button(window, text="quit", command=window.destroy)
-        result.pack(padx=5, pady=5)
-        button.pack()
-        button2.pack()
+    def calculate_result(self):
+        self.score = round((6/(6+self.turn))*10, 2)
+        self.show_result()
 
-    def start(self):
+    def start(self, window=None):
+        if window:
+            window.destroy()
+            self.clean_page()
         self.draw_start()
+
+    def clean_page(self):
+        self.score  = 0
+        self.turn   = 0
+
 
 class InferWindow(FrameWork):
     def __init__(self, master, controller):
         FrameWork.__init__(self, master, controller)
+        self.score          = 0
         self.debug          = True
         self.copied         = False
         self.steps          = [1, 1, 1, 1]
@@ -986,7 +1010,7 @@ class InferWindow(FrameWork):
                     self.options.append(options[i])
             elif len(options) == 1:
                 self.options.append(options[0])
-
+        self.options = [op.replace('\xa0', '') for op in self.options]
         if self.debug:
             print(self.options)
 
@@ -1012,12 +1036,15 @@ class InferWindow(FrameWork):
             tag=name)
         canvas.create_text(X_anchor, Y_anchor, text=name, font=used_font, tag=name)
         if rank == self.option_rank:
-            canvas.tag_bind(name, '<Button-1>', lambda event, c=canvas: self.copy_node(event, c))
+            tags = name.split()
+            print("TAG DEBUG: ", tags)
+            for t in tags:
+                canvas.tag_bind(t, '<Button-1>', lambda event, c=canvas: self.copy_node(event, c))
 
     def copy_node(self, event, canvas):
         selected    = canvas.find_closest(event.x, event.y)
         self.copy_canvas = canvas
-        self.copy_name = canvas.gettags(selected)[0]
+        self.copy_name = " ".join(canvas.gettags(selected)[:-1])
         self.copied = True
         # self.draw_node(canvas, name, self.option_rank, 3)
         if self.debug:
@@ -1027,7 +1054,8 @@ class InferWindow(FrameWork):
         if canvas == self.copy_canvas:
             return
         elif self.copied:
-            self.copy_canvas.delete(self.copy_name)
+            print(self.copy_name)
+            self.copy_canvas.delete(self.copy_name.split()[0])
 
             if self.copy_canvas == self.option_canvas:
                 i = 3
@@ -1039,32 +1067,49 @@ class InferWindow(FrameWork):
                 j = 3
             else:
                 j = self.group_canvases.index(canvas)
-
+            print(j, self.steps[j])
             self.draw_node(canvas, self.copy_name, self.option_rank, self.steps[j])
             self.update_step(canvas, j)
             self.copied = False
 
     def update_step(self, canvas, index, size=2):
         # print(self.group_canvases)
-        if self.steps[index] > 1:
+        if (self.steps[index]+size) >= 1:
             self.steps[index] += size
 
     def confirm_selection(self):
         for gc in self.group_canvases:
-            print(len(gc.find_all()))
+            ids = gc.find_all()[::2]
+            for id in ids[1:]:
+                print("TAG DEBUG 2: ", gc.gettags(id))
+                if self.get_parent(" ".join(gc.gettags(id)), self.option_rank) == " ".join(gc.gettags(ids[0])):
+                    self.score += 1
+        self.calculate_score()
+            # print(ids, gc.gettags(ids[-1]))
 
-    def start(self):
+    def calculate_score(self):
+        self.score = round((self.score/len(self.options))*10, 2)
+        self.show_result()
+
+    def start(self, window=None):
+        if window:
+            window.destroy()
+            self.clean_page()
+            return
+
         self.get_groups()
         self.get_options()
         for i in range(len(self.options)):
-            step = (i*2)+1
-            self.draw_node(self.option_canvas, self.options[i], self.option_rank, step)
+            self.draw_node(self.option_canvas, self.options[i], self.option_rank,
+                self.steps[3])
+            self.update_step(self.option_canvas, 3)
         for j in range(len(self.groups)):
             self.draw_node(self.group_canvases[j], self.groups[j], self.group_rank,
                 self.steps[j])
-            self.steps[j] += 2
+            self.update_step(self.group_canvases[j], j)
 
     def clean_page(self):
+        self.score          = 0
         self.groups         = []
         self.options        = []
         self.steps          = [1, 1, 1, 1]
@@ -1097,6 +1142,10 @@ class QuizWindow(FrameWork):
 
         self.description = tk.Label(self, font=used_font, text="description")
         self.canvas = tk.Canvas(self, bd=1, bg="white", relief="solid")
+        self.canvas.create_rectangle(0, 0, 50, 50, fill="teal", tag="big dick")
+        self.canvas.create_rectangle(100, 100, 150, 150, fill="yellow", tag="small peepee")
+        self.canvas.bind('<Button-1>', self.print_tag)
+        self.canvas.tag_bind('big dick', '<Button-1>', self.print_tag)
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=9)
@@ -1104,6 +1153,18 @@ class QuizWindow(FrameWork):
 
         self.description.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
         self.canvas.grid(row=1, column=0, sticky="nsew")
+
+    def print_tag(self, event):
+        sel = self.canvas.find_closest(event.x, event.y)
+        print(self.canvas.gettags(sel))
+
+    def generate_open(self):
+        if self.debug:
+            print("Generating open")
+
+    def generate_mc(self):
+        if self.debug:
+            print("Generating multiple choice")
 
 class InterWindow(FrameWork):
     def __init__(self, master, controller):
